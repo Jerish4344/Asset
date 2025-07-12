@@ -1,0 +1,258 @@
+{% extends "base.html" %}
+
+{% block title %}Roles - Asset Management System{% endblock %}
+
+{% block page_title %}Role Management{% endblock %}
+
+{% block breadcrumbs %}
+<li class="breadcrumb-item"><a href="{% url 'asset_dashboard' %}">Home</a></li>
+<li class="breadcrumb-item"><a href="{% url 'incident_dashboard' %}">Incidents</a></li>
+<li class="breadcrumb-item active">Roles</li>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- Header with actions -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1 class="h3 mb-0 text-gray-800">
+            <i class="fas fa-user-tag me-2"></i>Roles
+            {% if roles %}
+                <span class="badge bg-secondary">{{ page_obj.paginator.count }}</span>
+            {% endif %}
+        </h1>
+        <div>
+            <a href="{% url 'role_create' %}" class="btn btn-primary">
+                <i class="fas fa-plus-circle me-2"></i>Create Role
+            </a>
+            <a href="{% url 'user_role_list' %}" class="btn btn-info ms-2">
+                <i class="fas fa-users-cog me-2"></i>User Assignments
+            </a>
+        </div>
+    </div>
+
+    <!-- Search and Filter -->
+    <div class="card shadow mb-4">
+        <div class="card-header py-3">
+            <h6 class="m-0 font-weight-bold text-primary">
+                <i class="fas fa-search me-2"></i>Search Roles
+            </h6>
+        </div>
+        <div class="card-body">
+            <form method="get" id="searchForm">
+                <div class="input-group">
+                    <input type="text" class="form-control" name="search" placeholder="Search by role name or description..." value="{{ search_term }}">
+                    <button class="btn btn-primary" type="submit">
+                        <i class="fas fa-search"></i>
+                    </button>
+                    {% if search_term %}
+                    <a href="{% url 'role_list' %}" class="btn btn-secondary">
+                        <i class="fas fa-times"></i> Clear
+                    </a>
+                    {% endif %}
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Roles Table -->
+    <div class="card shadow mb-4">
+        <div class="card-header py-3">
+            <h6 class="m-0 font-weight-bold text-primary">
+                <i class="fas fa-list me-2"></i>Role List
+            </h6>
+        </div>
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-bordered table-hover">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Role Name</th>
+                            <th>Description</th>
+                            <th colspan="7" class="text-center">Permissions</th>
+                            <th>Actions</th>
+                        </tr>
+                        <tr>
+                            <th colspan="2"></th>
+                            <th class="text-center" title="Can view incidents">View</th>
+                            <th class="text-center" title="Can create incidents">Create</th>
+                            <th class="text-center" title="Can update incidents">Update</th>
+                            <th class="text-center" title="Can assign incidents">Assign</th>
+                            <th class="text-center" title="Can close incidents">Close</th>
+                            <th class="text-center" title="Can delete incidents">Delete</th>
+                            <th class="text-center" title="Can manage roles">Manage Roles</th>
+                            <th></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for role in roles %}
+                        <tr>
+                            <td>
+                                <a href="{% url 'role_detail' role.id %}">
+                                    {{ role.name }}
+                                </a>
+                            </td>
+                            <td>{{ role.description|truncatechars:50|default:"No description" }}</td>
+                            <td class="text-center">
+                                {% if role.can_view_incidents %}
+                                <i class="fas fa-check text-success"></i>
+                                {% else %}
+                                <i class="fas fa-times text-danger"></i>
+                                {% endif %}
+                            </td>
+                            <td class="text-center">
+                                {% if role.can_create_incidents %}
+                                <i class="fas fa-check text-success"></i>
+                                {% else %}
+                                <i class="fas fa-times text-danger"></i>
+                                {% endif %}
+                            </td>
+                            <td class="text-center">
+                                {% if role.can_update_incidents %}
+                                <i class="fas fa-check text-success"></i>
+                                {% else %}
+                                <i class="fas fa-times text-danger"></i>
+                                {% endif %}
+                            </td>
+                            <td class="text-center">
+                                {% if role.can_assign_incidents %}
+                                <i class="fas fa-check text-success"></i>
+                                {% else %}
+                                <i class="fas fa-times text-danger"></i>
+                                {% endif %}
+                            </td>
+                            <td class="text-center">
+                                {% if role.can_close_incidents %}
+                                <i class="fas fa-check text-success"></i>
+                                {% else %}
+                                <i class="fas fa-times text-danger"></i>
+                                {% endif %}
+                            </td>
+                            <td class="text-center">
+                                {% if role.can_delete_incidents %}
+                                <i class="fas fa-check text-success"></i>
+                                {% else %}
+                                <i class="fas fa-times text-danger"></i>
+                                {% endif %}
+                            </td>
+                            <td class="text-center">
+                                {% if role.can_manage_roles %}
+                                <i class="fas fa-check text-success"></i>
+                                {% else %}
+                                <i class="fas fa-times text-danger"></i>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <div class="btn-group" role="group">
+                                    <a href="{% url 'role_detail' role.id %}" class="btn btn-sm btn-info" title="View">
+                                        <i class="fas fa-eye"></i>
+                                    </a>
+                                    <a href="{% url 'role_update' role.id %}" class="btn btn-sm btn-primary" title="Edit">
+                                        <i class="fas fa-edit"></i>
+                                    </a>
+                                    <a href="{% url 'role_delete' role.id %}" class="btn btn-sm btn-danger" title="Delete">
+                                        <i class="fas fa-trash"></i>
+                                    </a>
+                                </div>
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="10" class="text-center py-5">
+                                <div class="text-muted mb-3">
+                                    <i class="fas fa-user-tag fa-4x"></i>
+                                </div>
+                                <h5>No roles found</h5>
+                                <p>Create a new role to get started</p>
+                                <a href="{% url 'role_create' %}" class="btn btn-primary">
+                                    <i class="fas fa-plus-circle me-2"></i>Create Role
+                                </a>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            
+            <!-- Pagination -->
+            {% include "components/pagination.html" %}
+        </div>
+    </div>
+
+    <!-- Role Information Card -->
+    <div class="card shadow mb-4">
+        <div class="card-header py-3">
+            <h6 class="m-0 font-weight-bold text-primary">
+                <i class="fas fa-info-circle me-2"></i>About Roles
+            </h6>
+        </div>
+        <div class="card-body">
+            <p>Roles define what actions users can perform in the incident management system. Each role has specific permissions that control access to different features:</p>
+            
+            <div class="row">
+                <div class="col-md-6">
+                    <ul class="list-group mb-4">
+                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                            <div>
+                                <strong>View Incidents</strong>
+                                <p class="mb-0 small text-muted">Can view incident details</p>
+                            </div>
+                            <span class="badge bg-primary rounded-pill"><i class="fas fa-eye"></i></span>
+                        </li>
+                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                            <div>
+                                <strong>Create Incidents</strong>
+                                <p class="mb-0 small text-muted">Can report new incidents</p>
+                            </div>
+                            <span class="badge bg-success rounded-pill"><i class="fas fa-plus-circle"></i></span>
+                        </li>
+                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                            <div>
+                                <strong>Update Incidents</strong>
+                                <p class="mb-0 small text-muted">Can modify incident details</p>
+                            </div>
+                            <span class="badge bg-info rounded-pill"><i class="fas fa-edit"></i></span>
+                        </li>
+                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                            <div>
+                                <strong>Assign Incidents</strong>
+                                <p class="mb-0 small text-muted">Can assign incidents to users</p>
+                            </div>
+                            <span class="badge bg-secondary rounded-pill"><i class="fas fa-user-plus"></i></span>
+                        </li>
+                    </ul>
+                </div>
+                <div class="col-md-6">
+                    <ul class="list-group mb-4">
+                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                            <div>
+                                <strong>Close Incidents</strong>
+                                <p class="mb-0 small text-muted">Can mark incidents as resolved/closed</p>
+                            </div>
+                            <span class="badge bg-success rounded-pill"><i class="fas fa-check-circle"></i></span>
+                        </li>
+                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                            <div>
+                                <strong>Delete Incidents</strong>
+                                <p class="mb-0 small text-muted">Can remove incidents from the system</p>
+                            </div>
+                            <span class="badge bg-danger rounded-pill"><i class="fas fa-trash"></i></span>
+                        </li>
+                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                            <div>
+                                <strong>Manage Roles</strong>
+                                <p class="mb-0 small text-muted">Can create, edit and assign roles</p>
+                            </div>
+                            <span class="badge bg-warning rounded-pill"><i class="fas fa-users-cog"></i></span>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+            
+            <div class="alert alert-info">
+                <i class="fas fa-lightbulb me-2"></i>
+                <strong>Tip:</strong> To assign roles to users, visit the <a href="{% url 'user_role_list' %}">User Role Assignments</a> page.
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,398 @@
+{% extends "base.html" %}
+
+{% block title %}
+    {% if step %}Edit Workflow Step: {{ step.name }}{% else %}Add Workflow Step{% endif %}
+{% endblock %}
+
+{% block page_title %}
+    {% if step %}Edit Workflow Step: {{ step.name }}{% else %}Add Workflow Step{% endif %}
+{% endblock %}
+
+{% block breadcrumbs %}
+    <li class="breadcrumb-item"><a href="{% url 'asset_dashboard' %}">Home</a></li>
+    <li class="breadcrumb-item"><a href="{% url 'incident_dashboard' %}">Incidents</a></li>
+    <li class="breadcrumb-item"><a href="{% url 'workflow_template_list' %}">Workflow Templates</a></li>
+    <li class="breadcrumb-item"><a href="{% url 'workflow_template_detail' workflow_template.pk %}">{{ workflow_template.name }}</a></li>
+    <li class="breadcrumb-item active">
+        {% if step %}Edit Step{% else %}Add Step{% endif %}
+    </li>
+{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-lg-8">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">
+                    {% if step %}
+                        <i class="fas fa-edit me-2"></i>Edit Workflow Step
+                    {% else %}
+                        <i class="fas fa-plus-circle me-2"></i>Add Workflow Step
+                    {% endif %}
+                </h5>
+            </div>
+            <div class="card-body">
+                <form method="post" novalidate>
+                    {% csrf_token %}
+                    
+                    {% if form.non_field_errors %}
+                        <div class="alert alert-danger">
+                            {% for error in form.non_field_errors %}
+                                {{ error }}
+                            {% endfor %}
+                        </div>
+                    {% endif %}
+                    
+                    <!-- Basic Information -->
+                    <div class="mb-4">
+                        <h5 class="border-bottom pb-2">Basic Information</h5>
+                        
+                        <div class="mb-3">
+                            <label for="{{ form.name.id_for_label }}" class="form-label">Step Name <span class="text-danger">*</span></label>
+                            <input type="text" 
+                                   name="{{ form.name.name }}" 
+                                   id="{{ form.name.id_for_label }}" 
+                                   class="form-control {% if form.name.errors %}is-invalid{% endif %}" 
+                                   value="{{ form.name.value|default:'' }}" 
+                                   placeholder="Name of this workflow step"
+                                   required>
+                            {% if form.name.errors %}
+                                <div class="invalid-feedback">
+                                    {% for error in form.name.errors %}
+                                        {{ error }}
+                                    {% endfor %}
+                                </div>
+                            {% endif %}
+                            <small class="form-text text-muted">A clear, concise name for this step (e.g., "Triage", "Investigation")</small>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="{{ form.description.id_for_label }}" class="form-label">Description</label>
+                            <textarea name="{{ form.description.name }}" 
+                                      id="{{ form.description.id_for_label }}" 
+                                      class="form-control {% if form.description.errors %}is-invalid{% endif %}" 
+                                      rows="3" 
+                                      placeholder="Detailed description of this workflow step">{{ form.description.value|default:'' }}</textarea>
+                            {% if form.description.errors %}
+                                <div class="invalid-feedback">
+                                    {% for error in form.description.errors %}
+                                        {{ error }}
+                                    {% endfor %}
+                                </div>
+                            {% endif %}
+                            <small class="form-text text-muted">Explain what happens during this step and its purpose</small>
+                        </div>
+                        
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label for="{{ form.order.id_for_label }}" class="form-label">Order <span class="text-danger">*</span></label>
+                                <input type="number" 
+                                       name="{{ form.order.name }}" 
+                                       id="{{ form.order.id_for_label }}" 
+                                       class="form-control {% if form.order.errors %}is-invalid{% endif %}" 
+                                       value="{{ form.order.value|default:next_order }}" 
+                                       min="1"
+                                       required>
+                                {% if form.order.errors %}
+                                    <div class="invalid-feedback">
+                                        {% for error in form.order.errors %}
+                                            {{ error }}
+                                        {% endfor %}
+                                    </div>
+                                {% endif %}
+                                <small class="form-text text-muted">Sequence number for this step in the workflow (lower numbers come first)</small>
+                            </div>
+                            
+                            <div class="col-md-6 mb-3">
+                                <label for="{{ form.time_limit.id_for_label }}" class="form-label">Time Limit (hours)</label>
+                                <input type="number" 
+                                       name="{{ form.time_limit.name }}" 
+                                       id="{{ form.time_limit.id_for_label }}" 
+                                       class="form-control {% if form.time_limit.errors %}is-invalid{% endif %}" 
+                                       value="{{ form.time_limit.value|default:'' }}" 
+                                       min="0"
+                                       step="0.5">
+                                {% if form.time_limit.errors %}
+                                    <div class="invalid-feedback">
+                                        {% for error in form.time_limit.errors %}
+                                            {{ error }}
+                                        {% endfor %}
+                                    </div>
+                                {% endif %}
+                                <small class="form-text text-muted">Target time to complete this step (leave empty for no limit)</small>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Required Actions -->
+                    <div class="mb-4">
+                        <h5 class="border-bottom pb-2">Required Actions</h5>
+                        
+                        <div class="mb-3">
+                            <label for="{{ form.required_actions.id_for_label }}" class="form-label">Required Actions</label>
+                            <textarea name="{{ form.required_actions.name }}" 
+                                      id="{{ form.required_actions.id_for_label }}" 
+                                      class="form-control {% if form.required_actions.errors %}is-invalid{% endif %}" 
+                                      rows="5" 
+                                      placeholder="List the actions that must be completed in this step (one per line)">{{ form.required_actions.value|default:'' }}</textarea>
+                            {% if form.required_actions.errors %}
+                                <div class="invalid-feedback">
+                                    {% for error in form.required_actions.errors %}
+                                        {{ error }}
+                                    {% endfor %}
+                                </div>
+                            {% endif %}
+                            <small class="form-text text-muted">Enter each required action on a new line. These are tasks that must be completed before moving to the next step.</small>
+                        </div>
+                    </div>
+                    
+                    <!-- Role Assignments -->
+                    <div class="mb-4">
+                        <h5 class="border-bottom pb-2">Role Assignments</h5>
+                        
+                        <div class="mb-3">
+                            <label for="{{ form.assigned_roles.id_for_label }}" class="form-label">Assigned Roles</label>
+                            <select name="{{ form.assigned_roles.name }}" 
+                                    id="{{ form.assigned_roles.id_for_label }}" 
+                                    class="form-select {% if form.assigned_roles.errors %}is-invalid{% endif %}" 
+                                    multiple
+                                    size="5">
+                                {% for choice in form.assigned_roles.field.queryset %}
+                                    <option value="{{ choice.pk }}"
+                                        {% if form.assigned_roles.value and choice.pk|stringformat:"s" in form.assigned_roles.value %}selected{% endif %}>
+                                        {{ choice.name }}
+                                    </option>
+                                {% endfor %}
+                            </select>
+                            {% if form.assigned_roles.errors %}
+                                <div class="invalid-feedback">
+                                    {% for error in form.assigned_roles.errors %}
+                                        {{ error }}
+                                    {% endfor %}
+                                </div>
+                            {% endif %}
+                            <small class="form-text text-muted">Hold Ctrl/Cmd to select multiple roles responsible for this step</small>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="{{ form.transition_conditions.id_for_label }}" class="form-label">Transition Conditions</label>
+                            <textarea name="{{ form.transition_conditions.name }}" 
+                                      id="{{ form.transition_conditions.id_for_label }}" 
+                                      class="form-control {% if form.transition_conditions.errors %}is-invalid{% endif %}" 
+                                      rows="3" 
+                                      placeholder="Conditions that must be met to proceed to the next step">{{ form.transition_conditions.value|default:'' }}</textarea>
+                            {% if form.transition_conditions.errors %}
+                                <div class="invalid-feedback">
+                                    {% for error in form.transition_conditions.errors %}
+                                        {{ error }}
+                                    {% endfor %}
+                                </div>
+                            {% endif %}
+                            <small class="form-text text-muted">Describe what conditions must be met before the incident can move to the next step</small>
+                        </div>
+                    </div>
+                    
+                    <!-- Additional Settings -->
+                    <div class="mb-4">
+                        <h5 class="border-bottom pb-2">Additional Settings</h5>
+                        
+                        <div class="mb-3 form-check">
+                            <input type="checkbox" 
+                                   name="{{ form.is_active.name }}" 
+                                   id="{{ form.is_active.id_for_label }}" 
+                                   class="form-check-input {% if form.is_active.errors %}is-invalid{% endif %}" 
+                                   {% if form.is_active.value %}checked{% endif %}>
+                            <label for="{{ form.is_active.id_for_label }}" class="form-check-label">Active</label>
+                            {% if form.is_active.errors %}
+                                <div class="invalid-feedback">
+                                    {% for error in form.is_active.errors %}
+                                        {{ error }}
+                                    {% endfor %}
+                                </div>
+                            {% endif %}
+                            <small class="form-text text-muted d-block">If unchecked, this step will be skipped in the workflow</small>
+                        </div>
+                        
+                        <div class="mb-3 form-check">
+                            <input type="checkbox" 
+                                   name="{{ form.requires_approval.name }}" 
+                                   id="{{ form.requires_approval.id_for_label }}" 
+                                   class="form-check-input {% if form.requires_approval.errors %}is-invalid{% endif %}" 
+                                   {% if form.requires_approval.value %}checked{% endif %}>
+                            <label for="{{ form.requires_approval.id_for_label }}" class="form-check-label">Requires Approval</label>
+                            {% if form.requires_approval.errors %}
+                                <div class="invalid-feedback">
+                                    {% for error in form.requires_approval.errors %}
+                                        {{ error }}
+                                    {% endfor %}
+                                </div>
+                            {% endif %}
+                            <small class="form-text text-muted d-block">If checked, explicit approval is required to move past this step</small>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="{{ form.status_on_entry.id_for_label }}" class="form-label">Status on Entry</label>
+                            <select name="{{ form.status_on_entry.name }}" 
+                                    id="{{ form.status_on_entry.id_for_label }}" 
+                                    class="form-select {% if form.status_on_entry.errors %}is-invalid{% endif %}">
+                                <option value="">No Status Change</option>
+                                {% for choice in form.status_on_entry.field.queryset %}
+                                    <option value="{{ choice.pk }}" 
+                                            {% if form.status_on_entry.value|stringformat:"s" == choice.pk|stringformat:"s" %}selected{% endif %}
+                                            style="background-color: {{ choice.color }}; color: {% if choice.is_dark_color %}#ffffff{% else %}#212529{% endif %}">
+                                        {{ choice.name }}
+                                    </option>
+                                {% endfor %}
+                            </select>
+                            {% if form.status_on_entry.errors %}
+                                <div class="invalid-feedback">
+                                    {% for error in form.status_on_entry.errors %}
+                                        {{ error }}
+                                    {% endfor %}
+                                </div>
+                            {% endif %}
+                            <small class="form-text text-muted">Status to set when an incident enters this step (leave empty for no change)</small>
+                        </div>
+                    </div>
+                    
+                    <div class="d-flex justify-content-between">
+                        <a href="{% url 'workflow_template_detail' workflow_template.pk %}" class="btn btn-secondary">
+                            <i class="fas fa-times me-1"></i>Cancel
+                        </a>
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-save me-1"></i>
+                            {% if step %}Update{% else %}Add{% endif %} Step
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-lg-4">
+        <!-- Instructions Card -->
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="card-title mb-0">
+                    <i class="fas fa-info-circle me-2"></i>Instructions
+                </h5>
+            </div>
+            <div class="card-body">
+                <p>Workflow steps define the stages an incident goes through from creation to resolution.</p>
+                <h6 class="mt-3">Creating Effective Steps:</h6>
+                <ul>
+                    <li><strong>Name</strong> - Use clear, action-oriented names (e.g., "Investigate", not "Investigation")</li>
+                    <li><strong>Order</strong> - Arrange steps in a logical sequence</li>
+                    <li><strong>Required Actions</strong> - List specific tasks that must be completed</li>
+                    <li><strong>Time Limit</strong> - Set realistic timeframes for completion</li>
+                    <li><strong>Role Assignments</strong> - Assign responsibilities to appropriate roles</li>
+                </ul>
+                <div class="alert alert-info mt-3">
+                    <i class="fas fa-lightbulb me-2"></i>
+                    <strong>Tip:</strong> Be specific about required actions and transition conditions to ensure consistent handling of incidents.
+                </div>
+            </div>
+        </div>
+        
+        <!-- Current Workflow Card -->
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">
+                    <i class="fas fa-sitemap me-2"></i>Current Workflow
+                </h5>
+            </div>
+            <div class="card-body">
+                <h6 class="mb-2">{{ workflow_template.name }}</h6>
+                <p class="small text-muted">{{ workflow_template.description|truncatechars:100|default:"No description provided" }}</p>
+                
+                {% if workflow_template.steps.exists %}
+                    <div class="mt-3">
+                        <h6 class="mb-2">Existing Steps:</h6>
+                        <ol class="list-group list-group-numbered mb-3">
+                            {% for existing_step in workflow_template.steps.all %}
+                                <li class="list-group-item {% if step and step.pk == existing_step.pk %}list-group-item-primary{% endif %}">
+                                    {{ existing_step.name }}
+                                    {% if existing_step.time_limit %}
+                                        <span class="badge bg-info float-end">{{ existing_step.time_limit }}h</span>
+                                    {% endif %}
+                                </li>
+                            {% endfor %}
+                        </ol>
+                    </div>
+                {% else %}
+                    <div class="alert alert-warning">
+                        <i class="fas fa-exclamation-triangle me-2"></i>No steps defined yet for this workflow.
+                    </div>
+                {% endif %}
+                
+                <div class="alert alert-warning mt-3">
+                    <i class="fas fa-exclamation-triangle me-2"></i>
+                    <strong>Important:</strong> Changes to workflow steps will only affect new incidents, not existing ones.
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const form = document.querySelector('form');
+        
+        // Client-side form validation
+        form.addEventListener('submit', function(event) {
+            let isValid = true;
+            
+            // Required fields validation
+            const nameField = document.getElementById('{{ form.name.id_for_label }}');
+            if (!nameField.value.trim()) {
+                nameField.classList.add('is-invalid');
+                
+                // Add feedback if it doesn't exist
+                if (!nameField.nextElementSibling || !nameField.nextElementSibling.classList.contains('invalid-feedback')) {
+                    const feedback = document.createElement('div');
+                    feedback.classList.add('invalid-feedback');
+                    feedback.textContent = 'Step name is required.';
+                    nameField.parentNode.insertBefore(feedback, nameField.nextSibling);
+                }
+                
+                isValid = false;
+            }
+            
+            // Order field validation
+            const orderField = document.getElementById('{{ form.order.id_for_label }}');
+            if (!orderField.value || isNaN(parseInt(orderField.value)) || parseInt(orderField.value) < 1) {
+                orderField.classList.add('is-invalid');
+                
+                // Add feedback if it doesn't exist
+                if (!orderField.nextElementSibling || !orderField.nextElementSibling.classList.contains('invalid-feedback')) {
+                    const feedback = document.createElement('div');
+                    feedback.classList.add('invalid-feedback');
+                    feedback.textContent = 'Order must be a positive number.';
+                    orderField.parentNode.insertBefore(feedback, orderField.nextSibling);
+                }
+                
+                isValid = false;
+            }
+            
+            if (!isValid) {
+                event.preventDefault();
+            }
+        });
+        
+        // Remove validation errors when user types/selects
+        const inputs = form.querySelectorAll('input, textarea, select');
+        inputs.forEach(input => {
+            const eventType = input.tagName === 'SELECT' ? 'change' : 'input';
+            input.addEventListener(eventType, function() {
+                this.classList.remove('is-invalid');
+                const feedback = this.nextElementSibling;
+                if (feedback && feedback.classList.contains('invalid-feedback')) {
+                    feedback.textContent = '';
+                }
+            });
+        });
+    });
+</script>
+{% endblock %}

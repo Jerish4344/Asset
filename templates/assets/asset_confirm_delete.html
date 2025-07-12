@@ -1,0 +1,169 @@
+{% extends "base.html" %}
+
+{% block title %}Delete Asset: {{ asset.asset_name }}{% endblock %}
+
+{% block page_title %}Delete Asset: {{ asset.asset_name }}{% endblock %}
+
+{% block breadcrumbs %}
+    <li class="breadcrumb-item"><a href="{% url 'asset_dashboard' %}">Home</a></li>
+    <li class="breadcrumb-item"><a href="{% url 'asset_list' %}">Assets</a></li>
+    <li class="breadcrumb-item"><a href="{% url 'asset_detail' asset.pk %}">{{ asset.asset_name }}</a></li>
+    <li class="breadcrumb-item active">Delete</li>
+{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-md-8">
+        <div class="card border-danger">
+            <div class="card-header bg-danger text-white">
+                <h5 class="card-title mb-0">
+                    <i class="fas fa-exclamation-triangle me-2"></i>Confirm Asset Deletion
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="alert alert-warning">
+                    <i class="fas fa-exclamation-circle me-2"></i>
+                    <strong>Warning:</strong> This action cannot be undone. All data associated with this asset will be permanently removed.
+                </div>
+                
+                <p>Are you sure you want to delete the following asset?</p>
+                
+                <table class="table table-bordered">
+                    <tbody>
+                        <tr>
+                            <th style="width: 30%">Asset ID</th>
+                            <td>{{ asset.asset_id }}</td>
+                        </tr>
+                        <tr>
+                            <th>Asset Name</th>
+                            <td>{{ asset.asset_name }}</td>
+                        </tr>
+                        <tr>
+                            <th>Category</th>
+                            <td>{{ asset.category.category_name|default:"Not categorized" }}</td>
+                        </tr>
+                        <tr>
+                            <th>Asset Make</th>
+                            <td>{{ asset.asset_make|default:"Not specified" }}</td>
+                        </tr>
+                        <tr>
+                            <th>Asset Type</th>
+                            <td>{{ asset.asset_type|default:"Not specified" }}</td>
+                        </tr>
+                        <tr>
+                            <th>Feature</th>
+                            <td>{{ asset.feature.feature_name|default:"No features" }}</td>
+                        </tr>
+                        <tr>
+                            <th>Parent Asset</th>
+                            <td>{% if asset.parent_asset %}{{ asset.parent_asset.asset_name }}{% else %}None{% endif %}</td>
+                        </tr>
+                        <tr>
+                            <th>Location</th>
+                            <td>{{ asset.location.address_value|default:"No location" }}</td>
+                        </tr>
+                        <tr>
+                            <th>Purpose</th>
+                            <td>{{ asset.asset_purpose|default:"Not specified" }}</td>
+                        </tr>
+                        <tr>
+                            <th>Status</th>
+                            <td>
+                                {% if asset.is_active %}
+                                    <span class="badge bg-success">Active</span>
+                                {% else %}
+                                    <span class="badge bg-secondary">Inactive</span>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        <tr>
+                            <th>Valid From</th>
+                            <td>{{ asset.valid_from }}</td>
+                        </tr>
+                        <tr>
+                            <th>Valid To</th>
+                            <td>{{ asset.valid_to|default:"No expiration date" }}</td>
+                        </tr>
+                    </tbody>
+                </table>
+                
+                {% if child_assets %}
+                <div class="alert alert-danger mt-3">
+                    <i class="fas fa-exclamation-triangle me-2"></i>
+                    <strong>Critical Warning:</strong> This asset has {{ child_assets|length }} child assets that will be affected by this deletion.
+                    <ul class="mb-0 mt-2">
+                        {% for child in child_assets %}
+                            <li>{{ child.asset_name }} (ID: {{ child.asset_id }})</li>
+                        {% endfor %}
+                    </ul>
+                </div>
+                {% endif %}
+                
+                {% if network_addresses %}
+                <div class="alert alert-warning mt-3">
+                    <i class="fas fa-network-wired me-2"></i>
+                    <strong>Warning:</strong> The following network addresses will be deleted:
+                    <ul class="mb-0 mt-2">
+                        {% for address in network_addresses %}
+                            <li>{{ address.address_type }}: {{ address.address_value }}</li>
+                        {% endfor %}
+                    </ul>
+                </div>
+                {% endif %}
+                
+                {% if incidents %}
+                <div class="alert alert-warning mt-3">
+                    <i class="fas fa-exclamation-circle me-2"></i>
+                    <strong>Warning:</strong> There are {{ incidents|length }} incidents associated with this asset that will be affected.
+                </div>
+                {% endif %}
+                
+                <form method="post">
+                    {% csrf_token %}
+                    <div class="d-flex justify-content-between mt-4">
+                        <a href="{% url 'asset_detail' asset.pk %}" class="btn btn-secondary">
+                            <i class="fas fa-arrow-left me-1"></i>Cancel
+                        </a>
+                        <button type="submit" class="btn btn-danger">
+                            <i class="fas fa-trash-alt me-1"></i>Delete Asset
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">
+                    <i class="fas fa-info-circle me-2"></i>Deletion Implications
+                </h5>
+            </div>
+            <div class="card-body">
+                <p>Deleting this asset will:</p>
+                <ul>
+                    <li>Permanently remove the asset from the system</li>
+                    <li>Delete all network addresses associated with this asset</li>
+                    <li>Remove all relationships with other assets</li>
+                    <li>Affect any incidents linked to this asset</li>
+                </ul>
+                
+                <div class="alert alert-info mt-3">
+                    <i class="fas fa-lightbulb me-2"></i>
+                    <strong>Alternative:</strong> Instead of deleting, consider marking the asset as inactive if it's no longer in use but has historical value.
+                </div>
+                
+                <div class="alert alert-danger mt-3">
+                    <i class="fas fa-ban me-2"></i>
+                    <strong>Restrictions:</strong> You cannot delete this asset if:
+                    <ul class="mb-0 mt-2">
+                        <li>It has child assets assigned to it</li>
+                        <li>It has incidents that are still open</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

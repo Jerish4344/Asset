@@ -1,0 +1,172 @@
+{% extends "base.html" %}
+
+{% block title %}Remove Role: {{ user_role.role.name }} from {{ user_role.user.username }}{% endblock %}
+
+{% block page_title %}Remove Role: {{ user_role.role.name }} from {{ user_role.user.username }}{% endblock %}
+
+{% block breadcrumbs %}
+    <li class="breadcrumb-item"><a href="{% url 'asset_dashboard' %}">Home</a></li>
+    <li class="breadcrumb-item"><a href="{% url 'incident_dashboard' %}">Incidents</a></li>
+    <li class="breadcrumb-item"><a href="{% url 'user_role_list' %}">User Roles</a></li>
+    <li class="breadcrumb-item active">Remove Assignment</li>
+{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-md-8">
+        <div class="card border-danger">
+            <div class="card-header bg-danger text-white">
+                <h5 class="card-title mb-0">
+                    <i class="fas fa-exclamation-triangle me-2"></i>Confirm Role Removal
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="alert alert-warning">
+                    <i class="fas fa-exclamation-circle me-2"></i>
+                    <strong>Warning:</strong> This action will remove the role assignment and the user may lose associated permissions.
+                </div>
+                
+                <p>Are you sure you want to remove the following role assignment?</p>
+                
+                <table class="table table-bordered">
+                    <tbody>
+                        <tr>
+                            <th style="width: 30%">User</th>
+                            <td>
+                                {{ user_role.user.username }}
+                                {% if user_role.user.get_full_name %}
+                                    ({{ user_role.user.get_full_name }})
+                                {% endif %}
+                            </td>
+                        </tr>
+                        <tr>
+                            <th>Role</th>
+                            <td>{{ user_role.role.name }}</td>
+                        </tr>
+                        <tr>
+                            <th>Assigned Since</th>
+                            <td>{{ user_role.assigned_at }}</td>
+                        </tr>
+                        <tr>
+                            <th>Status</th>
+                            <td>
+                                {% if user_role.is_active %}
+                                    <span class="badge bg-success">Active</span>
+                                {% else %}
+                                    <span class="badge bg-secondary">Inactive</span>
+                                {% endif %}
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+                
+                <div class="card mt-3 border-warning">
+                    <div class="card-header bg-warning text-dark">
+                        <h6 class="mb-0">
+                            <i class="fas fa-key me-2"></i>Permissions That Will Be Lost
+                        </h6>
+                    </div>
+                    <div class="card-body">
+                        <ul class="list-group">
+                            {% if user_role.role.can_view_incidents %}
+                                <li class="list-group-item">
+                                    <i class="fas fa-eye me-2"></i>View Incidents
+                                    <small class="text-muted d-block">Can view incident details and history</small>
+                                </li>
+                            {% endif %}
+                            
+                            {% if user_role.role.can_create_incidents %}
+                                <li class="list-group-item">
+                                    <i class="fas fa-plus-circle me-2"></i>Create Incidents
+                                    <small class="text-muted d-block">Can report new incidents</small>
+                                </li>
+                            {% endif %}
+                            
+                            {% if user_role.role.can_update_incidents %}
+                                <li class="list-group-item">
+                                    <i class="fas fa-edit me-2"></i>Update Incidents
+                                    <small class="text-muted d-block">Can modify incident details and add comments</small>
+                                </li>
+                            {% endif %}
+                            
+                            {% if user_role.role.can_assign_incidents %}
+                                <li class="list-group-item">
+                                    <i class="fas fa-user-tag me-2"></i>Assign Incidents
+                                    <small class="text-muted d-block">Can assign incidents to users</small>
+                                </li>
+                            {% endif %}
+                            
+                            {% if user_role.role.can_close_incidents %}
+                                <li class="list-group-item">
+                                    <i class="fas fa-check-circle me-2"></i>Close Incidents
+                                    <small class="text-muted d-block">Can mark incidents as resolved or closed</small>
+                                </li>
+                            {% endif %}
+                            
+                            {% if user_role.role.can_delete_incidents %}
+                                <li class="list-group-item">
+                                    <i class="fas fa-trash-alt me-2"></i>Delete Incidents
+                                    <small class="text-muted d-block">Can permanently remove incidents from the system</small>
+                                </li>
+                            {% endif %}
+                            
+                            {% if user_role.role.can_manage_roles %}
+                                <li class="list-group-item list-group-item-danger">
+                                    <i class="fas fa-users-cog me-2"></i>Manage Roles
+                                    <small class="text-muted d-block">Can create, edit, and delete roles and assign them to users</small>
+                                </li>
+                            {% endif %}
+                        </ul>
+                    </div>
+                </div>
+                
+                <form method="post">
+                    {% csrf_token %}
+                    <div class="d-flex justify-content-between mt-4">
+                        <a href="{% url 'user_role_list' %}" class="btn btn-secondary">
+                            <i class="fas fa-arrow-left me-1"></i>Cancel
+                        </a>
+                        <button type="submit" class="btn btn-danger">
+                            <i class="fas fa-trash-alt me-1"></i>Remove Role Assignment
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">
+                    <i class="fas fa-info-circle me-2"></i>Information
+                </h5>
+            </div>
+            <div class="card-body">
+                <p>Removing this role assignment will:</p>
+                <ul>
+                    <li>Delete the connection between the user and this role</li>
+                    <li>Remove the permissions granted by this role from the user</li>
+                </ul>
+                
+                <div class="alert alert-info mt-3">
+                    <i class="fas fa-lightbulb me-2"></i>
+                    <strong>Note:</strong> If the user has other active roles, they will retain permissions granted by those roles.
+                </div>
+                
+                {% if user_role.role.can_manage_roles %}
+                <div class="alert alert-danger mt-3">
+                    <i class="fas fa-shield-alt me-2"></i>
+                    <strong>Security Warning:</strong> This role has administrative permissions. Ensure that the user should no longer have these permissions before proceeding.
+                </div>
+                {% endif %}
+                
+                <div class="alert alert-warning mt-3">
+                    <i class="fas fa-question-circle me-2"></i>
+                    <strong>Alternative:</strong> Instead of deleting, consider marking the role assignment as inactive to temporarily revoke permissions while preserving the assignment history.
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

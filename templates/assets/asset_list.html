@@ -1,0 +1,247 @@
+{% extends "base.html" %}
+
+{% block title %}Assets - Asset Management System{% endblock %}
+
+{% block page_title %}Assets{% endblock %}
+
+{% block breadcrumbs %}
+<li class="breadcrumb-item"><a href="{% url 'asset_dashboard' %}">Home</a></li>
+<li class="breadcrumb-item active">Assets</li>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- Header with actions -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1 class="h3 mb-0 text-gray-800">
+            <i class="fas fa-cubes me-2"></i>Assets
+            {% if assets %}
+                <span class="badge bg-secondary">{{ page_obj.paginator.count }}</span>
+            {% endif %}
+        </h1>
+        <div>
+            {% if perms.assets.add_asset %}
+            <a href="{% url 'asset_create' %}" class="btn btn-primary">
+                <i class="fas fa-plus-circle me-2"></i>Add Asset
+            </a>
+            {% endif %}
+            <a href="{% url 'asset_excel_import' %}" class="btn btn-success ms-2">
+                <i class="fas fa-file-import me-2"></i>Import Assets
+            </a>
+        </div>
+    </div>
+
+    <!-- Filters -->
+    <div class="card shadow mb-4">
+        <div class="card-header py-3 d-flex justify-content-between align-items-center">
+            <h6 class="m-0 font-weight-bold text-primary">
+                <i class="fas fa-filter me-2"></i>Filters
+            </h6>
+            <button class="btn btn-sm btn-outline-primary" type="button" data-bs-toggle="collapse" data-bs-target="#filterCollapse" aria-expanded="false" aria-controls="filterCollapse">
+                <i class="fas fa-chevron-down"></i>
+            </button>
+        </div>
+        <div class="collapse show" id="filterCollapse">
+            <div class="card-body">
+                <form method="get" id="filterForm">
+                    <div class="row">
+                        <!-- Search -->
+                        <div class="col-md-4 mb-3">
+                            <div class="input-group">
+                                <span class="input-group-text"><i class="fas fa-search"></i></span>
+                                <input type="text" class="form-control" id="search" name="search" placeholder="Search assets..." value="{{ search_term }}">
+                                {% if search_term %}
+                                <button type="button" class="btn btn-outline-secondary" onclick="clearSearch()">
+                                    <i class="fas fa-times"></i>
+                                </button>
+                                {% endif %}
+                            </div>
+                        </div>
+                        
+                        <!-- Category Filter -->
+                        <div class="col-md-2 mb-3">
+                            <select class="form-select" name="category" id="category" onchange="this.form.submit()">
+                                <option value="">All Categories</option>
+                                {% for category in categories %}
+                                <option value="{{ category.category_id }}" {% if category_filter == category.category_id|stringformat:"s" %}selected{% endif %}>
+                                    {{ category.category_name }}
+                                </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        
+                        <!-- Type Filter -->
+                        <div class="col-md-2 mb-3">
+                            <select class="form-select" name="type" id="type" onchange="this.form.submit()">
+                                <option value="">All Types</option>
+                                {% for type in asset_types %}
+                                <option value="{{ type }}" {% if type_filter == type %}selected{% endif %}>
+                                    {{ type|default:"Unknown" }}
+                                </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        
+                        <!-- Active Filter -->
+                        <div class="col-md-2 mb-3">
+                            <select class="form-select" name="active" id="active" onchange="this.form.submit()">
+                                <option value="">All Statuses</option>
+                                <option value="1" {% if active_filter == '1' %}selected{% endif %}>Active</option>
+                                <option value="0" {% if active_filter == '0' %}selected{% endif %}>Inactive</option>
+                            </select>
+                        </div>
+                        
+                        <!-- Filter Actions -->
+                        <div class="col-md-2 mb-3">
+                            <div class="d-grid gap-2">
+                                <button type="submit" class="btn btn-primary">
+                                    <i class="fas fa-filter me-2"></i>Apply
+                                </button>
+                                <a href="{% url 'asset_list' %}" class="btn btn-outline-secondary">
+                                    <i class="fas fa-redo me-2"></i>Reset
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Assets Table -->
+    <div class="card shadow mb-4">
+        <div class="card-header py-3">
+            <h6 class="m-0 font-weight-bold text-primary">
+                <i class="fas fa-list me-2"></i>Asset List
+            </h6>
+        </div>
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-bordered table-hover table-striped">
+                    <thead class="table-light">
+                        <tr>
+                            <th>
+                                <a href="?{% for key, value in request.GET.items %}{% if key != 'sort' and key != 'page' %}{{ key }}={{ value }}&{% endif %}{% endfor %}sort={% if sort == 'asset_name' %}-{% endif %}asset_name" class="text-decoration-none text-dark">
+                                    Asset Name
+                                    {% if sort == 'asset_name' %}
+                                    <i class="fas fa-sort-down ms-1"></i>
+                                    {% elif sort == '-asset_name' %}
+                                    <i class="fas fa-sort-up ms-1"></i>
+                                    {% else %}
+                                    <i class="fas fa-sort ms-1 text-muted"></i>
+                                    {% endif %}
+                                </a>
+                            </th>
+                            <th>Category</th>
+                            <th>Type</th>
+                            <th>Make</th>
+                            <th>Features</th>
+                            <th>Location</th>
+                            <th>Status</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for asset in assets %}
+                        <tr>
+                            <td>
+                                <a href="{% url 'asset_detail' asset.asset_id %}">
+                                    {{ asset.asset_name|default:"Unnamed Asset" }}
+                                </a>
+                            </td>
+                            <td>
+                                {% if asset.category %}
+                                <a href="{% url 'asset_category_detail' asset.category.category_id %}">
+                                    {{ asset.category.category_name }}
+                                </a>
+                                {% else %}
+                                <span class="text-muted">Uncategorized</span>
+                                {% endif %}
+                            </td>
+                            <td>{{ asset.asset_type|default:"Unknown" }}</td>
+                            <td>{{ asset.asset_make|default:"Unknown" }}</td>
+                            <td>
+                                {% if asset.feature %}
+                                <a href="{% url 'asset_feature_detail' asset.feature.feature_id %}">
+                                    {{ asset.feature.feature_type }}: {{ asset.feature.feature_name }}
+                                </a>
+                                {% else %}
+                                <span class="text-muted">No features</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if asset.location %}
+                                <a href="{% url 'asset_location_detail' asset.location.location_id %}">
+                                    {% if asset.location.city %}
+                                    {{ asset.location.city }}, {{ asset.location.state|default:"" }}
+                                    {% else %}
+                                    {{ asset.location.address_type }}: {{ asset.location.address_value }}
+                                    {% endif %}
+                                </a>
+                                {% else %}
+                                <span class="text-muted">No location</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if asset.is_active %}
+                                <span class="badge bg-success">Active</span>
+                                {% else %}
+                                <span class="badge bg-danger">Inactive</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <div class="btn-group" role="group">
+                                    <a href="{% url 'asset_detail' asset.asset_id %}" class="btn btn-sm btn-info" title="View">
+                                        <i class="fas fa-eye"></i>
+                                    </a>
+                                    {% if perms.assets.change_asset %}
+                                    <a href="{% url 'asset_update' asset.asset_id %}" class="btn btn-sm btn-primary" title="Edit">
+                                        <i class="fas fa-edit"></i>
+                                    </a>
+                                    {% endif %}
+                                    {% if perms.assets.delete_asset %}
+                                    <a href="{% url 'asset_delete' asset.asset_id %}" class="btn btn-sm btn-danger" title="Delete">
+                                        <i class="fas fa-trash"></i>
+                                    </a>
+                                    {% endif %}
+                                </div>
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="8" class="text-center py-5">
+                                <div class="text-muted mb-3">
+                                    <i class="fas fa-cubes fa-4x"></i>
+                                </div>
+                                <h5>No assets found</h5>
+                                <p>Try adjusting your search or filter criteria</p>
+                                {% if perms.assets.add_asset %}
+                                <a href="{% url 'asset_create' %}" class="btn btn-primary">
+                                    <i class="fas fa-plus-circle me-2"></i>Add Asset
+                                </a>
+                                {% endif %}
+                                <a href="{% url 'asset_excel_import' %}" class="btn btn-success ms-2">
+                                    <i class="fas fa-file-import me-2"></i>Import Assets
+                                </a>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            
+            <!-- Pagination -->
+            {% include "components/pagination.html" %}
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    function clearSearch() {
+        document.getElementById('search').value = '';
+        document.getElementById('filterForm').submit();
+    }
+</script>
+{% endblock %}

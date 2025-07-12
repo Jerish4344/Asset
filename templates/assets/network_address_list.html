@@ -1,0 +1,207 @@
+{% extends "base.html" %}
+
+{% block title %}Asset Network Addresses{% endblock %}
+
+{% block page_title %}Asset Network Addresses{% endblock %}
+
+{% block breadcrumbs %}
+    <li class="breadcrumb-item"><a href="{% url 'asset_dashboard' %}">Home</a></li>
+    <li class="breadcrumb-item active">Network Addresses</li>
+{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col">
+        <div class="card">
+            <div class="card-header">
+                <div class="d-flex justify-content-between align-items-center">
+                    <h5 class="card-title mb-0">
+                        <i class="fas fa-network-wired me-2"></i>Asset Network Addresses
+                    </h5>
+                    {% if user.is_staff %}
+                    <a href="{% url 'asset_network_address_create' %}" class="btn btn-primary">
+                        <i class="fas fa-plus-circle me-1"></i>Add Network Address
+                    </a>
+                    {% endif %}
+                </div>
+            </div>
+            <div class="card-body">
+                <!-- Filter Form -->
+                <form method="get" class="mb-4">
+                    <div class="row g-3">
+                        <div class="col-md-4">
+                            <div class="input-group">
+                                <input type="text" name="search" class="form-control" placeholder="Search addresses..." value="{{ search_term }}">
+                                <button class="btn btn-outline-secondary" type="submit">
+                                    <i class="fas fa-search"></i>
+                                </button>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <select name="type" class="form-select">
+                                <option value="">All Address Types</option>
+                                {% for type_code, type_name in address_types %}
+                                    <option value="{{ type_code }}" {% if type_code == type_filter %}selected{% endif %}>{{ type_name }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-md-2">
+                            <select name="active" class="form-select">
+                                <option value="">All Status</option>
+                                <option value="1" {% if active_filter == '1' %}selected{% endif %}>Active</option>
+                                <option value="0" {% if active_filter == '0' %}selected{% endif %}>Inactive</option>
+                            </select>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="input-group">
+                                <select name="asset" class="form-select">
+                                    <option value="">All Assets</option>
+                                    <!-- Asset filter options would be populated dynamically -->
+                                </select>
+                                <button type="submit" class="btn btn-primary">Filter</button>
+                            </div>
+                        </div>
+                    </div>
+                </form>
+
+                {% if addresses %}
+                    <div class="table-responsive">
+                        <table class="table table-striped table-hover">
+                            <thead>
+                                <tr>
+                                    <th>ID</th>
+                                    <th>Asset</th>
+                                    <th>Type</th>
+                                    <th>Address</th>
+                                    <th>Status</th>
+                                    <th>Valid From</th>
+                                    <th>Valid To</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for address in addresses %}
+                                <tr>
+                                    <td>{{ address.id }}</td>
+                                    <td>
+                                        <a href="{% url 'asset_detail' address.asset.pk %}">
+                                            {{ address.asset.asset_name }}
+                                        </a>
+                                    </td>
+                                    <td>
+                                        {% if address.address_type == 'IP_ADDRESS' %}
+                                            <span class="badge bg-primary">
+                                                <i class="fas fa-network-wired me-1"></i>IP
+                                            </span>
+                                        {% elif address.address_type == 'MAC_ID' %}
+                                            <span class="badge bg-secondary">
+                                                <i class="fas fa-ethernet me-1"></i>MAC
+                                            </span>
+                                        {% else %}
+                                            <span class="badge bg-dark">
+                                                {{ address.address_type }}
+                                            </span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        <code>{{ address.address_value }}</code>
+                                    </td>
+                                    <td>
+                                        {% if address.is_active %}
+                                            <span class="badge bg-success">Active</span>
+                                        {% else %}
+                                            <span class="badge bg-secondary">Inactive</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>{{ address.valid_from|date:"Y-m-d H:i" }}</td>
+                                    <td>{{ address.valid_to|date:"Y-m-d H:i"|default:"No expiration" }}</td>
+                                    <td>
+                                        <div class="btn-group btn-group-sm">
+                                            <a href="{% url 'asset_detail' address.asset.pk %}" class="btn btn-outline-primary" title="View Asset">
+                                                <i class="fas fa-eye"></i>
+                                            </a>
+                                            {% if user.is_staff %}
+                                            <a href="{% url 'asset_network_address_update' address.pk %}" class="btn btn-outline-secondary" title="Edit">
+                                                <i class="fas fa-edit"></i>
+                                            </a>
+                                            <a href="{% url 'asset_network_address_delete' address.pk %}" class="btn btn-outline-danger" title="Delete">
+                                                <i class="fas fa-trash-alt"></i>
+                                            </a>
+                                            {% endif %}
+                                        </div>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    
+                    <!-- Pagination -->
+                    {% include "components/pagination.html" with page_obj=page_obj %}
+                    
+                    <div class="mt-3">
+                        <p class="text-muted">Showing {{ addresses|length }} of {{ page_obj.paginator.count }} network addresses</p>
+                    </div>
+                {% else %}
+                    <div class="alert alert-info">
+                        <i class="fas fa-info-circle me-2"></i>No network addresses found matching your criteria.
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">
+                    <i class="fas fa-info-circle me-2"></i>About Network Addresses
+                </h5>
+            </div>
+            <div class="card-body">
+                <p>Network addresses are used to identify assets on a network:</p>
+                <ul>
+                    <li><span class="badge bg-primary"><i class="fas fa-network-wired me-1"></i>IP</span> - IP addresses (e.g., 192.168.1.1) identify devices on a network</li>
+                    <li><span class="badge bg-secondary"><i class="fas fa-ethernet me-1"></i>MAC</span> - MAC addresses (e.g., 00:1A:2B:3C:4D:5E) identify network interfaces</li>
+                </ul>
+                <p>Each asset can have multiple network addresses of different types.</p>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">
+                    <i class="fas fa-lightbulb me-2"></i>Quick Tips
+                </h5>
+            </div>
+            <div class="card-body">
+                <ul>
+                    <li>IP addresses should be in the format xxx.xxx.xxx.xxx (e.g., 192.168.1.1)</li>
+                    <li>MAC addresses should be in the format XX:XX:XX:XX:XX:XX (e.g., 00:1A:2B:3C:4D:5E)</li>
+                    <li>Each asset can have multiple IP addresses but typically only one MAC address per network interface</li>
+                    <li>Use the filter options above to find addresses for specific assets or address types</li>
+                    <li>Click on an asset name to view all details for that asset</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Auto-submit form when select fields change
+        const selectFields = document.querySelectorAll('select[name="type"], select[name="active"]');
+        selectFields.forEach(select => {
+            select.addEventListener('change', function() {
+                this.form.submit();
+            });
+        });
+    });
+</script>
+{% endblock %}

@@ -1,0 +1,120 @@
+{% extends "base.html" %}
+
+{% block title %}Delete Location: {{ location.address_value }}{% endblock %}
+
+{% block page_title %}Delete Location: {{ location.address_value }}{% endblock %}
+
+{% block breadcrumbs %}
+    <li class="breadcrumb-item"><a href="{% url 'asset_dashboard' %}">Home</a></li>
+    <li class="breadcrumb-item"><a href="{% url 'asset_location_list' %}">Locations</a></li>
+    <li class="breadcrumb-item"><a href="{% url 'asset_location_detail' location.pk %}">{{ location.address_value }}</a></li>
+    <li class="breadcrumb-item active">Delete</li>
+{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-md-8">
+        <div class="card border-danger">
+            <div class="card-header bg-danger text-white">
+                <h5 class="card-title mb-0">
+                    <i class="fas fa-exclamation-triangle me-2"></i>Confirm Deletion
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="alert alert-warning">
+                    <i class="fas fa-exclamation-circle me-2"></i>
+                    <strong>Warning:</strong> This action cannot be undone. All assets assigned to this location will be affected.
+                </div>
+                
+                <p>Are you sure you want to delete the following asset location?</p>
+                
+                <table class="table table-bordered">
+                    <tbody>
+                        <tr>
+                            <th style="width: 30%">Location ID</th>
+                            <td>{{ location.location_id }}</td>
+                        </tr>
+                        <tr>
+                            <th>Address Type</th>
+                            <td>{{ location.address_type }}</td>
+                        </tr>
+                        <tr>
+                            <th>Address Value</th>
+                            <td>{{ location.address_value }}</td>
+                        </tr>
+                        {% if location.address_value2 %}
+                        <tr>
+                            <th>Address Value 2</th>
+                            <td>{{ location.address_value2 }}</td>
+                        </tr>
+                        {% endif %}
+                        {% if location.address_type == 'PHYSICAL' %}
+                        <tr>
+                            <th>City, Country</th>
+                            <td>{{ location.city|default:"" }}{% if location.city and location.country %}, {% endif %}{{ location.country|default:"" }}</td>
+                        </tr>
+                        {% endif %}
+                        <tr>
+                            <th>Status</th>
+                            <td>
+                                {% if location.is_active %}
+                                    <span class="badge bg-success">Active</span>
+                                {% else %}
+                                    <span class="badge bg-secondary">Inactive</span>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        <tr>
+                            <th>Assets at this location</th>
+                            <td>
+                                {% with asset_count=location.assets.count %}
+                                    {% if asset_count > 0 %}
+                                        <span class="badge bg-danger">{{ asset_count }}</span>
+                                    {% else %}
+                                        <span class="badge bg-success">0</span>
+                                    {% endif %}
+                                {% endwith %}
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+                
+                <form method="post">
+                    {% csrf_token %}
+                    <div class="d-flex justify-content-between mt-4">
+                        <a href="{% url 'asset_location_detail' location.pk %}" class="btn btn-secondary">
+                            <i class="fas fa-arrow-left me-1"></i>Cancel
+                        </a>
+                        <button type="submit" class="btn btn-danger">
+                            <i class="fas fa-trash-alt me-1"></i>Delete Location
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">
+                    <i class="fas fa-info-circle me-2"></i>Information
+                </h5>
+            </div>
+            <div class="card-body">
+                <p>Deleting this location will:</p>
+                <ul>
+                    <li>Remove it from the system permanently</li>
+                    <li>Remove the location association from any assets that use it</li>
+                </ul>
+                <p>If there are assets using this location, you will not be able to delete it until those assets are reassigned to different locations or deleted.</p>
+                
+                <div class="alert alert-info mt-3">
+                    <i class="fas fa-lightbulb me-2"></i>
+                    <strong>Tip:</strong> Instead of deleting, consider marking the location as inactive if it's no longer in use but has historical value.
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

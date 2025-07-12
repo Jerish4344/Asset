@@ -1,0 +1,770 @@
+{% extends "base.html" %}
+
+{% block title %}{{ incident.title }} - Incident Management{% endblock %}
+
+{% block page_title %}Incident: {{ incident.title }}{% endblock %}
+
+{% block breadcrumbs %}
+<li class="breadcrumb-item"><a href="{% url 'asset_dashboard' %}">Home</a></li>
+<li class="breadcrumb-item"><a href="{% url 'incident_list' %}">Incidents</a></li>
+<li class="breadcrumb-item active">{{ incident.title }}</li>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+    .status-badge {
+        font-size: 1rem;
+        padding: 0.5rem 1rem;
+    }
+    
+    .timeline {
+        position: relative;
+        padding-left: 30px;
+    }
+    
+    .timeline::before {
+        content: '';
+        position: absolute;
+        left: 9px;
+        top: 0;
+        height: 100%;
+        width: 2px;
+        background-color: #e9ecef;
+    }
+    
+    .timeline-item {
+        position: relative;
+        padding-bottom: 1.5rem;
+    }
+    
+    .timeline-item::before {
+        content: '';
+        position: absolute;
+        left: -30px;
+        top: 0;
+        width: 20px;
+        height: 20px;
+        border-radius: 50%;
+        background-color: #fff;
+        border: 2px solid #007bff;
+    }
+    
+    .timeline-item.create::before {
+        background-color: #28a745;
+        border-color: #28a745;
+    }
+    
+    .timeline-item.update::before {
+        background-color: #17a2b8;
+        border-color: #17a2b8;
+    }
+    
+    .timeline-item.status::before {
+        background-color: #fd7e14;
+        border-color: #fd7e14;
+    }
+    
+    .timeline-item.priority::before {
+        background-color: #dc3545;
+        border-color: #dc3545;
+    }
+    
+    .timeline-item.assign::before {
+        background-color: #6f42c1;
+        border-color: #6f42c1;
+    }
+    
+    .timeline-item.comment::before {
+        background-color: #20c997;
+        border-color: #20c997;
+    }
+    
+    .timeline-item.delete::before {
+        background-color: #6c757d;
+        border-color: #6c757d;
+    }
+    
+    .timeline-content {
+        padding: 1rem;
+        background-color: #f8f9fa;
+        border-radius: 0.25rem;
+    }
+    
+    .comment-box {
+        border-left: 4px solid #007bff;
+        background-color: #f8f9fa;
+    }
+    
+    .private-comment {
+        border-left-color: #dc3545;
+        background-color: #fff3f3;
+    }
+    
+    .comment-header {
+        background-color: rgba(0,0,0,0.03);
+        padding: 0.5rem 1rem;
+        border-bottom: 1px solid rgba(0,0,0,0.125);
+    }
+    
+    .incident-property {
+        font-weight: bold;
+    }
+    
+    .due-date-warning {
+        color: #dc3545;
+        font-weight: bold;
+    }
+    
+    .nav-tabs .nav-link {
+        position: relative;
+    }
+    
+    .nav-tabs .nav-link .badge {
+        position: absolute;
+        top: -8px;
+        right: -8px;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- Incident Header -->
+    <div class="card shadow mb-4">
+        <div class="card-header py-3 d-flex justify-content-between align-items-center">
+            <div>
+                <span class="badge status-badge" style="background-color: {{ incident.status.color|default:'#6c757d' }}">
+                    {{ incident.status.name }}
+                </span>
+                <span class="badge status-badge ms-2" style="background-color: {{ incident.priority.color|default:'#6c757d' }}">
+                    {{ incident.priority.name }}
+                </span>
+            </div>
+            <div>
+                <span class="text-muted">Incident #{{ incident.id }}</span>
+            </div>
+        </div>
+        <div class="card-body">
+            <div class="row">
+                <div class="col-md-8">
+                    <h4>{{ incident.title }}</h4>
+                    <p class="text-muted">
+                        Reported by <strong>{{ incident.reported_by.get_full_name|default:incident.reported_by.username }}</strong> 
+                        on {{ incident.reported_at|date:"F d, Y" }} at {{ incident.reported_at|time:"H:i" }}
+                    </p>
+                    
+                    {% if incident.due_date and not incident.status.is_closed %}
+                        {% if incident.due_date < now %}
+                            <p class="due-date-warning">
+                                <i class="fas fa-exclamation-triangle me-1"></i>
+                                Overdue since {{ incident.due_date|date:"F d, Y" }} at {{ incident.due_date|time:"H:i" }}
+                            </p>
+                        {% else %}
+                            <p>
+                                <i class="fas fa-calendar-alt me-1"></i>
+                                Due by {{ incident.due_date|date:"F d, Y" }} at {{ incident.due_date|time:"H:i" }}
+                            </p>
+                        {% endif %}
+                    {% endif %}
+                </div>
+                <div class="col-md-4 text-md-end">
+                    {% if incident.assigned_to %}
+                        <p>
+                            <span class="incident-property">Assigned to:</span><br>
+                            <span class="badge bg-info text-dark">
+                                <i class="fas fa-user me-1"></i>
+                                {{ incident.assigned_to.get_full_name|default:incident.assigned_to.username }}
+                            </span>
+                            {% if incident.assigned_at %}
+                                <br><small class="text-muted">Assigned on {{ incident.assigned_at|date:"M d, Y" }}</small>
+                            {% endif %}
+                        </p>
+                    {% else %}
+                        <p>
+                            <span class="badge bg-warning text-dark">
+                                <i class="fas fa-user-slash me-1"></i>
+                                Unassigned
+                            </span>
+                        </p>
+                    {% endif %}
+                    
+                    {% if incident.resolved_at %}
+                        <p>
+                            <span class="incident-property">Resolved:</span><br>
+                            {{ incident.resolved_at|date:"F d, Y" }} at {{ incident.resolved_at|time:"H:i" }}
+                        </p>
+                    {% endif %}
+                    
+                    {% if incident.closed_at %}
+                        <p>
+                            <span class="incident-property">Closed:</span><br>
+                            {{ incident.closed_at|date:"F d, Y" }} at {{ incident.closed_at|time:"H:i" }}
+                        </p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Action Buttons -->
+    <div class="d-flex justify-content-end mb-4">
+        {% if can_update %}
+            <a href="{% url 'incident_update' incident.id %}" class="btn btn-primary me-2">
+                <i class="fas fa-edit me-1"></i> Edit Incident
+            </a>
+        {% endif %}
+        
+        {% if can_assign and not incident.status.is_closed %}
+            <button type="button" class="btn btn-info me-2" data-bs-toggle="modal" data-bs-target="#assignModal">
+                <i class="fas fa-user-plus me-1"></i> Assign
+            </button>
+        {% endif %}
+        
+        {% if can_close and not incident.status.is_closed %}
+            <button type="button" class="btn btn-success me-2" data-bs-toggle="modal" data-bs-target="#closeModal">
+                <i class="fas fa-check-circle me-1"></i> Close Incident
+            </button>
+        {% endif %}
+        
+        {% if can_delete %}
+            <a href="{% url 'incident_delete' incident.id %}" class="btn btn-danger">
+                <i class="fas fa-trash me-1"></i> Delete
+            </a>
+        {% endif %}
+    </div>
+
+    <!-- Main Content Tabs -->
+    <div class="card shadow mb-4">
+        <div class="card-header py-3">
+            <ul class="nav nav-tabs card-header-tabs" id="incidentTabs" role="tablist">
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link active" id="details-tab" data-bs-toggle="tab" data-bs-target="#details" 
+                            type="button" role="tab" aria-controls="details" aria-selected="true">
+                        <i class="fas fa-info-circle me-1"></i> Details
+                    </button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link" id="comments-tab" data-bs-toggle="tab" data-bs-target="#comments" 
+                            type="button" role="tab" aria-controls="comments" aria-selected="false">
+                        <i class="fas fa-comments me-1"></i> Comments
+                        <span class="badge bg-secondary">{{ comments|length }}</span>
+                    </button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link" id="history-tab" data-bs-toggle="tab" data-bs-target="#history" 
+                            type="button" role="tab" aria-controls="history" aria-selected="false">
+                        <i class="fas fa-history me-1"></i> History
+                        <span class="badge bg-secondary">{{ history|length }}</span>
+                    </button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link" id="asset-tab" data-bs-toggle="tab" data-bs-target="#asset" 
+                            type="button" role="tab" aria-controls="asset" aria-selected="false">
+                        <i class="fas fa-cube me-1"></i> Related Asset
+                    </button>
+                </li>
+            </ul>
+        </div>
+        <div class="card-body">
+            <div class="tab-content" id="incidentTabsContent">
+                <!-- Details Tab -->
+                <div class="tab-pane fade show active" id="details" role="tabpanel" aria-labelledby="details-tab">
+                    <div class="row">
+                        <div class="col-md-8">
+                            <h5>Description</h5>
+                            <div class="card mb-4">
+                                <div class="card-body">
+                                    {{ incident.description|linebreaks }}
+                                </div>
+                            </div>
+                            
+                            {% if incident.resolution %}
+                                <h5>Resolution</h5>
+                                <div class="card mb-4 border-success">
+                                    <div class="card-body">
+                                        {{ incident.resolution|linebreaks }}
+                                    </div>
+                                </div>
+                            {% endif %}
+                        </div>
+                        <div class="col-md-4">
+                            <div class="card mb-4">
+                                <div class="card-header">
+                                    <h6 class="m-0 font-weight-bold text-primary">Incident Details</h6>
+                                </div>
+                                <div class="card-body">
+                                    <table class="table table-borderless">
+                                        <tbody>
+                                            <tr>
+                                                <th scope="row">Status</th>
+                                                <td>
+                                                    <span class="badge" style="background-color: {{ incident.status.color|default:'#6c757d' }}">
+                                                        {{ incident.status.name }}
+                                                    </span>
+                                                </td>
+                                            </tr>
+                                            <tr>
+                                                <th scope="row">Priority</th>
+                                                <td>
+                                                    <span class="badge" style="background-color: {{ incident.priority.color|default:'#6c757d' }}">
+                                                        {{ incident.priority.name }}
+                                                    </span>
+                                                </td>
+                                            </tr>
+                                            <tr>
+                                                <th scope="row">Category</th>
+                                                <td>{{ incident.category.name|default:"Uncategorized" }}</td>
+                                            </tr>
+                                            <tr>
+                                                <th scope="row">Reported By</th>
+                                                <td>{{ incident.reported_by.get_full_name|default:incident.reported_by.username }}</td>
+                                            </tr>
+                                            <tr>
+                                                <th scope="row">Reported On</th>
+                                                <td>{{ incident.reported_at|date:"M d, Y H:i" }}</td>
+                                            </tr>
+                                            <tr>
+                                                <th scope="row">Assigned To</th>
+                                                <td>
+                                                    {% if incident.assigned_to %}
+                                                        {{ incident.assigned_to.get_full_name|default:incident.assigned_to.username }}
+                                                    {% else %}
+                                                        <span class="text-muted">Unassigned</span>
+                                                    {% endif %}
+                                                </td>
+                                            </tr>
+                                            <tr>
+                                                <th scope="row">Due Date</th>
+                                                <td>
+                                                    {% if incident.due_date %}
+                                                        {{ incident.due_date|date:"M d, Y H:i" }}
+                                                        {% if incident.due_date < now and not incident.status.is_closed %}
+                                                            <span class="badge bg-danger ms-1">Overdue</span>
+                                                        {% endif %}
+                                                    {% else %}
+                                                        <span class="text-muted">No due date</span>
+                                                    {% endif %}
+                                                </td>
+                                            </tr>
+                                            <tr>
+                                                <th scope="row">Related Asset</th>
+                                                <td>
+                                                    {% if incident.asset %}
+                                                        <a href="{% url 'asset_detail' incident.asset.asset_id %}">
+                                                            {{ incident.asset.asset_name|default:"Unnamed Asset" }}
+                                                        </a>
+                                                    {% else %}
+                                                        <span class="text-muted">No related asset</span>
+                                                    {% endif %}
+                                                </td>
+                                            </tr>
+                                            <tr>
+                                                <th scope="row">Visibility</th>
+                                                <td>
+                                                    {% if incident.is_public %}
+                                                        <span class="badge bg-success">Public</span>
+                                                    {% else %}
+                                                        <span class="badge bg-secondary">Private</span>
+                                                    {% endif %}
+                                                </td>
+                                            </tr>
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Comments Tab -->
+                <div class="tab-pane fade" id="comments" role="tabpanel" aria-labelledby="comments-tab">
+                    <div class="mb-4">
+                        <h5>Add Comment</h5>
+                        <form method="post" action="{% url 'incident_add_comment' incident.id %}">
+                            {% csrf_token %}
+                            <div class="mb-3">
+                                {{ comment_form.comment }}
+                                {% if comment_form.comment.errors %}
+                                    <div class="invalid-feedback d-block">
+                                        {{ comment_form.comment.errors }}
+                                    </div>
+                                {% endif %}
+                            </div>
+                            <div class="form-check mb-3">
+                                {{ comment_form.is_private }}
+                                <label class="form-check-label" for="{{ comment_form.is_private.id_for_label }}">
+                                    Private comment (only visible to staff)
+                                </label>
+                            </div>
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-paper-plane me-1"></i> Add Comment
+                            </button>
+                        </form>
+                    </div>
+                    
+                    <hr>
+                    
+                    <h5>Comments</h5>
+                    {% if comments %}
+                        <div class="comment-list">
+                            {% for comment in comments %}
+                                <div class="comment-box mb-3 {% if comment.is_private %}private-comment{% endif %}">
+                                    <div class="comment-header d-flex justify-content-between">
+                                        <div>
+                                            <strong>{{ comment.user.get_full_name|default:comment.user.username }}</strong>
+                                            {% if comment.is_private %}
+                                                <span class="badge bg-danger ms-2">Private</span>
+                                            {% endif %}
+                                        </div>
+                                        <div class="text-muted">
+                                            {{ comment.created_at|date:"M d, Y H:i" }}
+                                            {% if user == comment.user or user.is_staff %}
+                                                <form method="post" action="{% url 'incident_delete_comment' incident.id comment.id %}" class="d-inline">
+                                                    {% csrf_token %}
+                                                    <button type="submit" class="btn btn-sm btn-link text-danger p-0 ms-2" 
+                                                            onclick="return confirm('Are you sure you want to delete this comment?');">
+                                                        <i class="fas fa-trash"></i>
+                                                    </button>
+                                                </form>
+                                            {% endif %}
+                                        </div>
+                                    </div>
+                                    <div class="p-3">
+                                        {{ comment.comment|linebreaks }}
+                                    </div>
+                                </div>
+                            {% endfor %}
+                        </div>
+                    {% else %}
+                        <div class="alert alert-info">
+                            <i class="fas fa-info-circle me-2"></i>
+                            No comments have been added yet.
+                        </div>
+                    {% endif %}
+                </div>
+                
+                <!-- History Tab -->
+                <div class="tab-pane fade" id="history" role="tabpanel" aria-labelledby="history-tab">
+                    <h5>Incident Timeline</h5>
+                    
+                    {% if history %}
+                        <div class="timeline mt-4">
+                            {% for entry in history %}
+                                <div class="timeline-item {{ entry.change_type|lower }}">
+                                    <div class="timeline-content">
+                                        <div class="d-flex justify-content-between">
+                                            <h6>
+                                                {% if entry.change_type == 'CREATE' %}
+                                                    <i class="fas fa-plus-circle me-1"></i> Incident Created
+                                                {% elif entry.change_type == 'UPDATE' %}
+                                                    <i class="fas fa-edit me-1"></i> {{ entry.field_name|title }} Updated
+                                                {% elif entry.change_type == 'STATUS' %}
+                                                    <i class="fas fa-exchange-alt me-1"></i> Status Changed
+                                                {% elif entry.change_type == 'PRIORITY' %}
+                                                    <i class="fas fa-level-up-alt me-1"></i> Priority Changed
+                                                {% elif entry.change_type == 'ASSIGN' %}
+                                                    <i class="fas fa-user-plus me-1"></i> Assignment Changed
+                                                {% elif entry.change_type == 'DELETE' %}
+                                                    <i class="fas fa-trash me-1"></i> {{ entry.field_name|title }} Deleted
+                                                {% else %}
+                                                    <i class="fas fa-history me-1"></i> {{ entry.field_name|title }} Changed
+                                                {% endif %}
+                                            </h6>
+                                            <small class="text-muted">{{ entry.changed_at|date:"M d, Y H:i" }}</small>
+                                        </div>
+                                        <p class="mb-1">
+                                            <span class="text-muted">By:</span> {{ entry.user.get_full_name|default:entry.user.username }}
+                                        </p>
+                                        
+                                        {% if entry.change_type != 'CREATE' %}
+                                            {% if entry.old_value %}
+                                                <p class="mb-1">
+                                                    <span class="text-muted">From:</span> {{ entry.old_value }}
+                                                </p>
+                                            {% endif %}
+                                            {% if entry.new_value %}
+                                                <p class="mb-0">
+                                                    <span class="text-muted">To:</span> {{ entry.new_value }}
+                                                </p>
+                                            {% endif %}
+                                        {% endif %}
+                                    </div>
+                                </div>
+                            {% endfor %}
+                        </div>
+                    {% else %}
+                        <div class="alert alert-info">
+                            <i class="fas fa-info-circle me-2"></i>
+                            No history records found for this incident.
+                        </div>
+                    {% endif %}
+                </div>
+                
+                <!-- Related Asset Tab -->
+                <div class="tab-pane fade" id="asset" role="tabpanel" aria-labelledby="asset-tab">
+                    {% if incident.asset %}
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="card mb-4">
+                                    <div class="card-header">
+                                        <h6 class="m-0 font-weight-bold text-primary">Asset Information</h6>
+                                    </div>
+                                    <div class="card-body">
+                                        <table class="table table-borderless">
+                                            <tbody>
+                                                <tr>
+                                                    <th scope="row" width="40%">Asset Name</th>
+                                                    <td>{{ incident.asset.asset_name|default:"Unnamed Asset" }}</td>
+                                                </tr>
+                                                <tr>
+                                                    <th scope="row">Category</th>
+                                                    <td>
+                                                        {% if incident.asset.category %}
+                                                            {{ incident.asset.category.category_name }}
+                                                        {% else %}
+                                                            <span class="text-muted">Uncategorized</span>
+                                                        {% endif %}
+                                                    </td>
+                                                </tr>
+                                                <tr>
+                                                    <th scope="row">Asset Type</th>
+                                                    <td>{{ incident.asset.asset_type|default:"Unknown" }}</td>
+                                                </tr>
+                                                <tr>
+                                                    <th scope="row">Make/Manufacturer</th>
+                                                    <td>{{ incident.asset.asset_make|default:"Unknown" }}</td>
+                                                </tr>
+                                                <tr>
+                                                    <th scope="row">Status</th>
+                                                    <td>
+                                                        {% if incident.asset.is_active %}
+                                                            <span class="badge bg-success">Active</span>
+                                                        {% else %}
+                                                            <span class="badge bg-danger">Inactive</span>
+                                                        {% endif %}
+                                                    </td>
+                                                </tr>
+                                            </tbody>
+                                        </table>
+                                        
+                                        <div class="mt-3 d-grid">
+                                            <a href="{% url 'asset_detail' incident.asset.asset_id %}" class="btn btn-primary">
+                                                <i class="fas fa-external-link-alt me-1"></i> View Asset Details
+                                            </a>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="col-md-6">
+                                <div class="card mb-4">
+                                    <div class="card-header">
+                                        <h6 class="m-0 font-weight-bold text-primary">Other Incidents for this Asset</h6>
+                                    </div>
+                                    <div class="card-body">
+                                        {% with other_incidents=incident.asset.incidents.all %}
+                                            {% if other_incidents|length > 1 %}
+                                                <div class="table-responsive">
+                                                    <table class="table table-hover">
+                                                        <thead>
+                                                            <tr>
+                                                                <th>ID</th>
+                                                                <th>Title</th>
+                                                                <th>Status</th>
+                                                                <th>Reported</th>
+                                                            </tr>
+                                                        </thead>
+                                                        <tbody>
+                                                            {% for other in other_incidents %}
+                                                                {% if other.id != incident.id %}
+                                                                    <tr>
+                                                                        <td>{{ other.id }}</td>
+                                                                        <td>
+                                                                            <a href="{% url 'incident_detail' other.id %}">
+                                                                                {{ other.title }}
+                                                                            </a>
+                                                                        </td>
+                                                                        <td>
+                                                                            <span class="badge" style="background-color: {{ other.status.color|default:'#6c757d' }}">
+                                                                                {{ other.status.name }}
+                                                                            </span>
+                                                                        </td>
+                                                                        <td>{{ other.reported_at|date:"M d, Y" }}</td>
+                                                                    </tr>
+                                                                {% endif %}
+                                                            {% endfor %}
+                                                        </tbody>
+                                                    </table>
+                                                </div>
+                                            {% else %}
+                                                <div class="alert alert-info">
+                                                    <i class="fas fa-info-circle me-2"></i>
+                                                    No other incidents reported for this asset.
+                                                </div>
+                                            {% endif %}
+                                        {% endwith %}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    {% else %}
+                        <div class="alert alert-info">
+                            <i class="fas fa-info-circle me-2"></i>
+                            No asset is associated with this incident.
+                            
+                            {% if can_update %}
+                                <div class="mt-3">
+                                    <a href="{% url 'incident_update' incident.id %}" class="btn btn-primary">
+                                        <i class="fas fa-link me-1"></i> Link an Asset
+                                    </a>
+                                </div>
+                            {% endif %}
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Assignment Modal -->
+{% if can_assign and not incident.status.is_closed %}
+<div class="modal fade" id="assignModal" tabindex="-1" aria-labelledby="assignModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="assignModalLabel">Assign Incident</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form method="post" action="{% url 'incident_update' incident.id %}">
+                {% csrf_token %}
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label for="assigned_to" class="form-label">Assign To</label>
+                        <select name="assigned_to" id="assigned_to" class="form-select">
+                            <option value="">Unassigned</option>
+                            {% for user in form.assigned_to.field.queryset %}
+                                <option value="{{ user.id }}" {% if incident.assigned_to == user %}selected{% endif %}>
+                                    {{ user.get_full_name|default:user.username }}
+                                </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <input type="hidden" name="title" value="{{ incident.title }}">
+                    <input type="hidden" name="description" value="{{ incident.description }}">
+                    <input type="hidden" name="status" value="{{ incident.status.id }}">
+                    <input type="hidden" name="priority" value="{{ incident.priority.id }}">
+                    {% if incident.category %}
+                        <input type="hidden" name="category" value="{{ incident.category.id }}">
+                    {% endif %}
+                    {% if incident.asset %}
+                        <input type="hidden" name="asset" value="{{ incident.asset.asset_id }}">
+                    {% endif %}
+                    {% if incident.due_date %}
+                        <input type="hidden" name="due_date" value="{{ incident.due_date|date:'Y-m-d\TH:i' }}">
+                    {% endif %}
+                    <input type="hidden" name="is_public" value="{% if incident.is_public %}1{% else %}0{% endif %}">
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-user-plus me-1"></i> Assign
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<!-- Close Incident Modal -->
+{% if can_close and not incident.status.is_closed %}
+<div class="modal fade" id="closeModal" tabindex="-1" aria-labelledby="closeModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="closeModalLabel">Close Incident</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form method="post" action="{% url 'incident_update' incident.id %}">
+                {% csrf_token %}
+                <div class="modal-body">
+                    <p>Are you sure you want to close this incident?</p>
+                    
+                    <div class="mb-3">
+                        <label for="closed_status" class="form-label">Close Status</label>
+                        <select name="status" id="closed_status" class="form-select">
+                            {% for status in form.status.field.queryset %}
+                                {% if status.is_closed %}
+                                    <option value="{{ status.id }}">{{ status.name }}</option>
+                                {% endif %}
+                            {% endfor %}
+                        </select>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="resolution" class="form-label">Resolution</label>
+                        <textarea name="resolution" id="resolution" class="form-control" rows="4">{{ incident.resolution|default:'' }}</textarea>
+                        <div class="form-text">Please provide a resolution summary before closing this incident.</div>
+                    </div>
+                    
+                    <input type="hidden" name="title" value="{{ incident.title }}">
+                    <input type="hidden" name="description" value="{{ incident.description }}">
+                    <input type="hidden" name="priority" value="{{ incident.priority.id }}">
+                    {% if incident.category %}
+                        <input type="hidden" name="category" value="{{ incident.category.id }}">
+                    {% endif %}
+                    {% if incident.asset %}
+                        <input type="hidden" name="asset" value="{{ incident.asset.asset_id }}">
+                    {% endif %}
+                    {% if incident.assigned_to %}
+                        <input type="hidden" name="assigned_to" value="{{ incident.assigned_to.id }}">
+                    {% endif %}
+                    <input type="hidden" name="is_public" value="{% if incident.is_public %}1{% else %}0{% endif %}">
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-success">
+                        <i class="fas fa-check-circle me-1"></i> Close Incident
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endif %}
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Add Bootstrap form classes to all form controls
+        const formControls = document.querySelectorAll('input, select, textarea');
+        formControls.forEach(function(control) {
+            if (control.type !== 'checkbox' && control.type !== 'radio') {
+                control.classList.add('form-control');
+            } else {
+                control.classList.add('form-check-input');
+            }
+        });
+        
+        // Show active tab based on hash in URL
+        const hash = window.location.hash;
+        if (hash) {
+            const tab = document.querySelector(`a[href="${hash}"]`);
+            if (tab) {
+                tab.click();
+            }
+        }
+        
+        // Update URL hash when tabs are clicked
+        const tabs = document.querySelectorAll('button[data-bs-toggle="tab"]');
+        tabs.forEach(tab => {
+            tab.addEventListener('shown.bs.tab', function (event) {
+                const id = event.target.getAttribute('data-bs-target');
+                history.replaceState(null, null, id);
+            });
+        });
+    });
+</script>
+{% endblock %}

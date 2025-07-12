@@ -1,0 +1,122 @@
+{% extends "base.html" %}
+
+{% block title %}Delete Role: {{ role.name }}{% endblock %}
+
+{% block page_title %}Delete Role: {{ role.name }}{% endblock %}
+
+{% block breadcrumbs %}
+    <li class="breadcrumb-item"><a href="{% url 'asset_dashboard' %}">Home</a></li>
+    <li class="breadcrumb-item"><a href="{% url 'incident_dashboard' %}">Incidents</a></li>
+    <li class="breadcrumb-item"><a href="{% url 'role_list' %}">Roles</a></li>
+    <li class="breadcrumb-item"><a href="{% url 'role_detail' role.pk %}">{{ role.name }}</a></li>
+    <li class="breadcrumb-item active">Delete</li>
+{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-md-8">
+        <div class="card border-danger">
+            <div class="card-header bg-danger text-white">
+                <h5 class="card-title mb-0">
+                    <i class="fas fa-exclamation-triangle me-2"></i>Confirm Role Deletion
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="alert alert-warning">
+                    <i class="fas fa-exclamation-circle me-2"></i>
+                    <strong>Warning:</strong> This action cannot be undone. All user assignments for this role will be removed.
+                </div>
+                
+                <p>Are you sure you want to delete the following role?</p>
+                
+                <table class="table table-bordered">
+                    <tbody>
+                        <tr>
+                            <th style="width: 30%">Role Name</th>
+                            <td>{{ role.name }}</td>
+                        </tr>
+                        <tr>
+                            <th>Description</th>
+                            <td>{{ role.description|default:"No description provided" }}</td>
+                        </tr>
+                        <tr>
+                            <th>Created</th>
+                            <td>{{ role.created_at }}</td>
+                        </tr>
+                        <tr>
+                            <th>Permissions</th>
+                            <td>
+                                <ul class="list-unstyled mb-0">
+                                    {% if role.can_view_incidents %}<li><i class="fas fa-check text-success me-1"></i> View Incidents</li>{% endif %}
+                                    {% if role.can_create_incidents %}<li><i class="fas fa-check text-success me-1"></i> Create Incidents</li>{% endif %}
+                                    {% if role.can_update_incidents %}<li><i class="fas fa-check text-success me-1"></i> Update Incidents</li>{% endif %}
+                                    {% if role.can_assign_incidents %}<li><i class="fas fa-check text-success me-1"></i> Assign Incidents</li>{% endif %}
+                                    {% if role.can_close_incidents %}<li><i class="fas fa-check text-success me-1"></i> Close Incidents</li>{% endif %}
+                                    {% if role.can_delete_incidents %}<li><i class="fas fa-check text-success me-1"></i> Delete Incidents</li>{% endif %}
+                                    {% if role.can_manage_roles %}<li><i class="fas fa-check text-success me-1"></i> Manage Roles</li>{% endif %}
+                                </ul>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+                
+                {% if user_roles %}
+                <div class="alert alert-danger mt-3">
+                    <i class="fas fa-users me-2"></i>
+                    <strong>Users Affected:</strong> The following {{ user_roles|length }} user(s) currently have this role assigned:
+                    <ul class="mb-0 mt-2">
+                        {% for user_role in user_roles %}
+                            <li>{{ user_role.user.username }} ({{ user_role.user.get_full_name|default:user_role.user.email }})</li>
+                        {% endfor %}
+                    </ul>
+                </div>
+                {% endif %}
+                
+                <form method="post">
+                    {% csrf_token %}
+                    <div class="d-flex justify-content-between mt-4">
+                        <a href="{% url 'role_detail' role.pk %}" class="btn btn-secondary">
+                            <i class="fas fa-arrow-left me-1"></i>Cancel
+                        </a>
+                        <button type="submit" class="btn btn-danger">
+                            <i class="fas fa-trash-alt me-1"></i>Delete Role
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">
+                    <i class="fas fa-info-circle me-2"></i>Information
+                </h5>
+            </div>
+            <div class="card-body">
+                <p>Deleting this role will:</p>
+                <ul>
+                    <li>Remove it from the system permanently</li>
+                    <li>Remove all user assignments for this role</li>
+                    <li>Potentially affect users' ability to perform certain actions in the system</li>
+                </ul>
+                
+                {% if user_roles %}
+                <div class="alert alert-warning mt-3">
+                    <i class="fas fa-exclamation-triangle me-2"></i>
+                    <strong>Important:</strong> Users who currently have this role will lose the associated permissions.
+                </div>
+                {% endif %}
+                
+                {% if role.can_manage_roles %}
+                <div class="alert alert-danger mt-3">
+                    <i class="fas fa-shield-alt me-2"></i>
+                    <strong>Security Warning:</strong> This role has administrative permissions. Ensure that other roles with similar permissions exist before deleting.
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

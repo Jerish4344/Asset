@@ -1,0 +1,214 @@
+{% extends "base.html" %}
+
+{% block title %}
+    {% if user_role %}Edit User Role Assignment{% else %}Assign Role to User{% endif %}
+{% endblock %}
+
+{% block page_title %}
+    {% if user_role %}Edit User Role Assignment{% else %}Assign Role to User{% endif %}
+{% endblock %}
+
+{% block breadcrumbs %}
+    <li class="breadcrumb-item"><a href="{% url 'asset_dashboard' %}">Home</a></li>
+    <li class="breadcrumb-item"><a href="{% url 'incident_dashboard' %}">Incidents</a></li>
+    <li class="breadcrumb-item"><a href="{% url 'user_role_list' %}">User Roles</a></li>
+    <li class="breadcrumb-item active">
+        {% if user_role %}Edit Assignment{% else %}Assign Role{% endif %}
+    </li>
+{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">
+                    {% if user_role %}
+                        <i class="fas fa-edit me-2"></i>Edit User Role Assignment
+                    {% else %}
+                        <i class="fas fa-user-plus me-2"></i>Assign Role to User
+                    {% endif %}
+                </h5>
+            </div>
+            <div class="card-body">
+                <form method="post" novalidate>
+                    {% csrf_token %}
+                    
+                    {% if form.non_field_errors %}
+                        <div class="alert alert-danger">
+                            {% for error in form.non_field_errors %}
+                                {{ error }}
+                            {% endfor %}
+                        </div>
+                    {% endif %}
+                    
+                    <div class="mb-3">
+                        <label for="{{ form.user.id_for_label }}" class="form-label">User</label>
+                        <select name="{{ form.user.name }}" 
+                                id="{{ form.user.id_for_label }}" 
+                                class="form-select {% if form.user.errors %}is-invalid{% endif %}" 
+                                {% if user_role %}disabled{% endif %}
+                                required>
+                            <option value="">Select User</option>
+                            {% for choice in form.user.field.queryset %}
+                                <option value="{{ choice.pk }}" {% if form.user.value|stringformat:"s" == choice.pk|stringformat:"s" %}selected{% endif %}>
+                                    {{ choice.username }}{% if choice.get_full_name %} ({{ choice.get_full_name }}){% endif %}
+                                </option>
+                            {% endfor %}
+                        </select>
+                        {% if user_role %}
+                            <input type="hidden" name="{{ form.user.name }}" value="{{ user_role.user.pk }}">
+                        {% endif %}
+                        {% if form.user.errors %}
+                            <div class="invalid-feedback">
+                                {% for error in form.user.errors %}
+                                    {{ error }}
+                                {% endfor %}
+                            </div>
+                        {% endif %}
+                        <small class="form-text text-muted">The user who will be assigned this role</small>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="{{ form.role.id_for_label }}" class="form-label">Role</label>
+                        <select name="{{ form.role.name }}" 
+                                id="{{ form.role.id_for_label }}" 
+                                class="form-select {% if form.role.errors %}is-invalid{% endif %}" 
+                                required>
+                            <option value="">Select Role</option>
+                            {% for choice in form.role.field.queryset %}
+                                <option value="{{ choice.pk }}" {% if form.role.value|stringformat:"s" == choice.pk|stringformat:"s" %}selected{% endif %}>
+                                    {{ choice.name }}
+                                </option>
+                            {% endfor %}
+                        </select>
+                        {% if form.role.errors %}
+                            <div class="invalid-feedback">
+                                {% for error in form.role.errors %}
+                                    {{ error }}
+                                {% endfor %}
+                            </div>
+                        {% endif %}
+                        <small class="form-text text-muted">The role to assign to this user</small>
+                    </div>
+                    
+                    <div class="mb-3 form-check">
+                        <input type="checkbox" 
+                               name="{{ form.is_active.name }}" 
+                               id="{{ form.is_active.id_for_label }}" 
+                               class="form-check-input {% if form.is_active.errors %}is-invalid{% endif %}" 
+                               {% if form.is_active.value %}checked{% endif %}>
+                        <label for="{{ form.is_active.id_for_label }}" class="form-check-label">Active</label>
+                        {% if form.is_active.errors %}
+                            <div class="invalid-feedback">
+                                {% for error in form.is_active.errors %}
+                                    {{ error }}
+                                {% endfor %}
+                            </div>
+                        {% endif %}
+                        <small class="form-text text-muted d-block">Indicates if this role assignment is currently active</small>
+                    </div>
+                    
+                    <div class="d-flex justify-content-between">
+                        <a href="{% url 'user_role_list' %}" class="btn btn-secondary">
+                            <i class="fas fa-times me-1"></i>Cancel
+                        </a>
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-save me-1"></i>
+                            {% if user_role %}Update{% else %}Assign{% endif %} Role
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">
+                    <i class="fas fa-info-circle me-2"></i>About User Roles
+                </h5>
+            </div>
+            <div class="card-body">
+                <p>User roles define what actions users can perform in the incident management system.</p>
+                <p>When you assign a role to a user, they gain all the permissions associated with that role:</p>
+                <ul>
+                    <li><strong>View Incidents:</strong> Basic permission to see incident information</li>
+                    <li><strong>Create Incidents:</strong> Ability to report new incidents</li>
+                    <li><strong>Update Incidents:</strong> Ability to modify incident details</li>
+                    <li><strong>Assign Incidents:</strong> Ability to assign incidents to other users</li>
+                    <li><strong>Close Incidents:</strong> Ability to resolve and close incidents</li>
+                    <li><strong>Delete Incidents:</strong> Ability to remove incidents from the system</li>
+                    <li><strong>Manage Roles:</strong> Administrative permission to manage the role system</li>
+                </ul>
+                
+                <div class="alert alert-info mt-3">
+                    <i class="fas fa-lightbulb me-2"></i>
+                    <strong>Tip:</strong> Users can have multiple roles assigned to them. Their effective permissions are the combination of all their active roles.
+                </div>
+                
+                <div class="alert alert-warning mt-3">
+                    <i class="fas fa-exclamation-triangle me-2"></i>
+                    <strong>Important:</strong> Be careful when assigning administrative roles that include the "Manage Roles" permission, as this gives users the ability to modify the permission system.
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const form = document.querySelector('form');
+        
+        // Client-side form validation
+        form.addEventListener('submit', function(event) {
+            let isValid = true;
+            
+            // Validate user selection (required)
+            const userSelect = document.getElementById('{{ form.user.id_for_label }}');
+            if (!userSelect.disabled && !userSelect.value) {
+                userSelect.classList.add('is-invalid');
+                if (!userSelect.nextElementSibling || !userSelect.nextElementSibling.classList.contains('invalid-feedback')) {
+                    const feedback = document.createElement('div');
+                    feedback.classList.add('invalid-feedback');
+                    feedback.textContent = 'User selection is required.';
+                    userSelect.parentNode.insertBefore(feedback, userSelect.nextSibling);
+                }
+                isValid = false;
+            }
+            
+            // Validate role selection (required)
+            const roleSelect = document.getElementById('{{ form.role.id_for_label }}');
+            if (!roleSelect.value) {
+                roleSelect.classList.add('is-invalid');
+                if (!roleSelect.nextElementSibling || !roleSelect.nextElementSibling.classList.contains('invalid-feedback')) {
+                    const feedback = document.createElement('div');
+                    feedback.classList.add('invalid-feedback');
+                    feedback.textContent = 'Role selection is required.';
+                    roleSelect.parentNode.insertBefore(feedback, roleSelect.nextSibling);
+                }
+                isValid = false;
+            }
+            
+            if (!isValid) {
+                event.preventDefault();
+            }
+        });
+        
+        // Remove validation errors when user selects
+        const selects = form.querySelectorAll('select');
+        selects.forEach(select => {
+            select.addEventListener('change', function() {
+                this.classList.remove('is-invalid');
+                const feedback = this.nextElementSibling;
+                if (feedback && feedback.classList.contains('invalid-feedback')) {
+                    feedback.textContent = '';
+                }
+            });
+        });
+    });
+</script>
+{% endblock %}

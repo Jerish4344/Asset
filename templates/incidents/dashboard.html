@@ -1,0 +1,605 @@
+{% extends "base.html" %}
+
+{% block title %}Incident Dashboard - Asset Management System{% endblock %}
+
+{% block page_title %}Incident Dashboard{% endblock %}
+
+{% block breadcrumbs %}
+<li class="breadcrumb-item"><a href="{% url 'asset_dashboard' %}">Home</a></li>
+<li class="breadcrumb-item active">Incident Dashboard</li>
+{% endblock %}
+
+{% block extra_css %}
+<!-- Chart.js -->
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/chart.js@3.7.1/dist/chart.min.css">
+<style>
+    .stat-card {
+        transition: transform 0.3s ease-in-out;
+    }
+    .stat-card:hover {
+        transform: translateY(-5px);
+    }
+    .action-card {
+        transition: all 0.3s ease;
+    }
+    .action-card:hover {
+        background-color: #f8f9fa;
+        border-color: #0d6efd;
+    }
+    .chart-container {
+        position: relative;
+        height: 300px;
+        width: 100%;
+    }
+    .incident-list {
+        max-height: 400px;
+        overflow-y: auto;
+    }
+    .priority-high {
+        border-left: 4px solid #dc3545;
+    }
+    .priority-medium {
+        border-left: 4px solid #ffc107;
+    }
+    .priority-low {
+        border-left: 4px solid #28a745;
+    }
+    .overdue {
+        background-color: #fff3f3;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- Welcome Message -->
+    <div class="alert alert-info mb-4">
+        <h4 class="alert-heading"><i class="fas fa-info-circle me-2"></i>Welcome to the Incident Management Dashboard!</h4>
+        <p class="mb-0">Here you can monitor incidents, view statistics, and access quick actions.</p>
+    </div>
+
+    <!-- Statistics Cards -->
+    <div class="row mb-4">
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card border-left-primary shadow h-100 py-2 stat-card">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-primary text-uppercase mb-1">
+                                Total Incidents</div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800">{{ total_incidents }}</div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-clipboard-list fa-2x text-gray-300"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card border-left-success shadow h-100 py-2 stat-card">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-success text-uppercase mb-1">
+                                Open Incidents</div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800">{{ open_incidents }}</div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-exclamation-circle fa-2x text-gray-300"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card border-left-warning shadow h-100 py-2 stat-card">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-warning text-uppercase mb-1">
+                                Closed Incidents</div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800">{{ closed_incidents }}</div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-check-circle fa-2x text-gray-300"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card border-left-danger shadow h-100 py-2 stat-card">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-danger text-uppercase mb-1">
+                                Avg Resolution Time</div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800">
+                                {% if resolution_stats.avg_resolution_time %}
+                                    {{ resolution_stats.avg_resolution_time }} hours
+                                {% else %}
+                                    N/A
+                                {% endif %}
+                            </div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-clock fa-2x text-gray-300"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Quick Actions -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card shadow mb-4">
+                <div class="card-header py-3 d-flex flex-row align-items-center justify-content-between">
+                    <h6 class="m-0 font-weight-bold text-primary">Quick Actions</h6>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-xl-3 col-md-6 mb-2">
+                            <a href="{% url 'incident_create' %}" class="text-decoration-none">
+                                <div class="card action-card">
+                                    <div class="card-body text-center">
+                                        <i class="fas fa-plus-circle fa-3x text-primary mb-3"></i>
+                                        <h5 class="card-title">Report Incident</h5>
+                                    </div>
+                                </div>
+                            </a>
+                        </div>
+                        <div class="col-xl-3 col-md-6 mb-2">
+                            <a href="{% url 'incident_list' %}?assigned=me" class="text-decoration-none">
+                                <div class="card action-card">
+                                    <div class="card-body text-center">
+                                        <i class="fas fa-tasks fa-3x text-success mb-3"></i>
+                                        <h5 class="card-title">My Incidents</h5>
+                                    </div>
+                                </div>
+                            </a>
+                        </div>
+                        <div class="col-xl-3 col-md-6 mb-2">
+                            <a href="{% url 'incident_list' %}?status=open" class="text-decoration-none">
+                                <div class="card action-card">
+                                    <div class="card-body text-center">
+                                        <i class="fas fa-list-alt fa-3x text-info mb-3"></i>
+                                        <h5 class="card-title">View All Open</h5>
+                                    </div>
+                                </div>
+                            </a>
+                        </div>
+                        <div class="col-xl-3 col-md-6 mb-2">
+                            <a href="{% url 'incident_report' %}" class="text-decoration-none">
+                                <div class="card action-card">
+                                    <div class="card-body text-center">
+                                        <i class="fas fa-chart-bar fa-3x text-warning mb-3"></i>
+                                        <h5 class="card-title">Generate Report</h5>
+                                    </div>
+                                </div>
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Charts and Tables -->
+    <div class="row">
+        <!-- Incident Trend Chart -->
+        <div class="col-xl-8 col-lg-7">
+            <div class="card shadow mb-4">
+                <div class="card-header py-3 d-flex flex-row align-items-center justify-content-between">
+                    <h6 class="m-0 font-weight-bold text-primary">Incident Trend (Last 30 Days)</h6>
+                </div>
+                <div class="card-body">
+                    <div class="chart-container">
+                        <canvas id="incidentTrendChart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Status Distribution -->
+        <div class="col-xl-4 col-lg-5">
+            <div class="card shadow mb-4">
+                <div class="card-header py-3 d-flex flex-row align-items-center justify-content-between">
+                    <h6 class="m-0 font-weight-bold text-primary">Status Distribution</h6>
+                </div>
+                <div class="card-body">
+                    <div class="chart-container">
+                        <canvas id="statusChart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <!-- Priority Distribution -->
+        <div class="col-xl-4 col-lg-5">
+            <div class="card shadow mb-4">
+                <div class="card-header py-3 d-flex flex-row align-items-center justify-content-between">
+                    <h6 class="m-0 font-weight-bold text-primary">Priority Distribution</h6>
+                </div>
+                <div class="card-body">
+                    <div class="chart-container">
+                        <canvas id="priorityChart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Category Distribution -->
+        <div class="col-xl-8 col-lg-7">
+            <div class="card shadow mb-4">
+                <div class="card-header py-3 d-flex flex-row align-items-center justify-content-between">
+                    <h6 class="m-0 font-weight-bold text-primary">Top Incident Categories</h6>
+                </div>
+                <div class="card-body">
+                    <div class="chart-container">
+                        <canvas id="categoryChart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <!-- Overdue Incidents -->
+        <div class="col-xl-6 col-lg-6">
+            <div class="card shadow mb-4">
+                <div class="card-header py-3 d-flex flex-row align-items-center justify-content-between">
+                    <h6 class="m-0 font-weight-bold text-primary">
+                        <i class="fas fa-exclamation-triangle me-2 text-danger"></i>Overdue Incidents
+                    </h6>
+                    <a href="{% url 'incident_list' %}?due=overdue" class="btn btn-sm btn-danger">View All</a>
+                </div>
+                <div class="card-body">
+                    <div class="incident-list">
+                        {% if overdue_incidents %}
+                            <div class="list-group">
+                                {% for incident in overdue_incidents %}
+                                    <a href="{% url 'incident_detail' incident.id %}" class="list-group-item list-group-item-action overdue {% if incident.priority.level >= 3 %}priority-high{% elif incident.priority.level == 2 %}priority-medium{% else %}priority-low{% endif %}">
+                                        <div class="d-flex w-100 justify-content-between">
+                                            <h6 class="mb-1">{{ incident.title }}</h6>
+                                            <small>Due: {{ incident.due_date|date:"M d, Y" }}</small>
+                                        </div>
+                                        <div class="d-flex w-100 justify-content-between">
+                                            <small>
+                                                <span class="badge" style="background-color: {{ incident.status.color }}">{{ incident.status.name }}</span>
+                                                <span class="badge" style="background-color: {{ incident.priority.color }}">{{ incident.priority.name }}</span>
+                                            </small>
+                                            <small>
+                                                {% if incident.assigned_to %}
+                                                    Assigned to: {{ incident.assigned_to.get_full_name|default:incident.assigned_to.username }}
+                                                {% else %}
+                                                    <span class="text-danger">Unassigned</span>
+                                                {% endif %}
+                                            </small>
+                                        </div>
+                                    </a>
+                                {% endfor %}
+                            </div>
+                        {% else %}
+                            <div class="text-center py-4">
+                                <i class="fas fa-check-circle fa-3x text-success mb-3"></i>
+                                <h5>No overdue incidents</h5>
+                                <p class="text-muted">All incidents are on track!</p>
+                            </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Unassigned Incidents -->
+        <div class="col-xl-6 col-lg-6">
+            <div class="card shadow mb-4">
+                <div class="card-header py-3 d-flex flex-row align-items-center justify-content-between">
+                    <h6 class="m-0 font-weight-bold text-primary">
+                        <i class="fas fa-user-slash me-2 text-warning"></i>Unassigned Incidents
+                    </h6>
+                    <a href="{% url 'incident_list' %}?assigned=unassigned" class="btn btn-sm btn-warning">View All</a>
+                </div>
+                <div class="card-body">
+                    <div class="incident-list">
+                        {% if unassigned_incidents %}
+                            <div class="list-group">
+                                {% for incident in unassigned_incidents %}
+                                    <a href="{% url 'incident_detail' incident.id %}" class="list-group-item list-group-item-action {% if incident.priority.level >= 3 %}priority-high{% elif incident.priority.level == 2 %}priority-medium{% else %}priority-low{% endif %}">
+                                        <div class="d-flex w-100 justify-content-between">
+                                            <h6 class="mb-1">{{ incident.title }}</h6>
+                                            <small>Reported: {{ incident.reported_at|date:"M d, Y" }}</small>
+                                        </div>
+                                        <div class="d-flex w-100 justify-content-between">
+                                            <small>
+                                                <span class="badge" style="background-color: {{ incident.status.color }}">{{ incident.status.name }}</span>
+                                                <span class="badge" style="background-color: {{ incident.priority.color }}">{{ incident.priority.name }}</span>
+                                            </small>
+                                            <small>
+                                                Reported by: {{ incident.reported_by.get_full_name|default:incident.reported_by.username }}
+                                            </small>
+                                        </div>
+                                    </a>
+                                {% endfor %}
+                            </div>
+                        {% else %}
+                            <div class="text-center py-4">
+                                <i class="fas fa-check-circle fa-3x text-success mb-3"></i>
+                                <h5>No unassigned incidents</h5>
+                                <p class="text-muted">All incidents have been assigned!</p>
+                            </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <!-- My Incidents -->
+        <div class="col-xl-6 col-lg-6">
+            <div class="card shadow mb-4">
+                <div class="card-header py-3 d-flex flex-row align-items-center justify-content-between">
+                    <h6 class="m-0 font-weight-bold text-primary">
+                        <i class="fas fa-tasks me-2 text-info"></i>My Assigned Incidents
+                    </h6>
+                    <a href="{% url 'incident_list' %}?assigned=me" class="btn btn-sm btn-info">View All</a>
+                </div>
+                <div class="card-body">
+                    <div class="incident-list">
+                        {% if my_incidents %}
+                            <div class="list-group">
+                                {% for incident in my_incidents %}
+                                    <a href="{% url 'incident_detail' incident.id %}" class="list-group-item list-group-item-action {% if incident.priority.level >= 3 %}priority-high{% elif incident.priority.level == 2 %}priority-medium{% else %}priority-low{% endif %}">
+                                        <div class="d-flex w-100 justify-content-between">
+                                            <h6 class="mb-1">{{ incident.title }}</h6>
+                                            <small>
+                                                {% if incident.due_date %}
+                                                    Due: {{ incident.due_date|date:"M d, Y" }}
+                                                {% else %}
+                                                    No due date
+                                                {% endif %}
+                                            </small>
+                                        </div>
+                                        <div class="d-flex w-100 justify-content-between">
+                                            <small>
+                                                <span class="badge" style="background-color: {{ incident.status.color }}">{{ incident.status.name }}</span>
+                                                <span class="badge" style="background-color: {{ incident.priority.color }}">{{ incident.priority.name }}</span>
+                                            </small>
+                                            <small>
+                                                Reported: {{ incident.reported_at|date:"M d, Y" }}
+                                            </small>
+                                        </div>
+                                    </a>
+                                {% endfor %}
+                            </div>
+                        {% else %}
+                            <div class="text-center py-4">
+                                <i class="fas fa-check-circle fa-3x text-success mb-3"></i>
+                                <h5>No incidents assigned to you</h5>
+                                <p class="text-muted">You're all caught up!</p>
+                            </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Recent Incidents -->
+        <div class="col-xl-6 col-lg-6">
+            <div class="card shadow mb-4">
+                <div class="card-header py-3 d-flex flex-row align-items-center justify-content-between">
+                    <h6 class="m-0 font-weight-bold text-primary">
+                        <i class="fas fa-history me-2 text-primary"></i>Recent Incidents
+                    </h6>
+                    <a href="{% url 'incident_list' %}" class="btn btn-sm btn-primary">View All</a>
+                </div>
+                <div class="card-body">
+                    <div class="incident-list">
+                        {% if recent_incidents %}
+                            <div class="list-group">
+                                {% for incident in recent_incidents %}
+                                    <a href="{% url 'incident_detail' incident.id %}" class="list-group-item list-group-item-action {% if incident.priority.level >= 3 %}priority-high{% elif incident.priority.level == 2 %}priority-medium{% else %}priority-low{% endif %}">
+                                        <div class="d-flex w-100 justify-content-between">
+                                            <h6 class="mb-1">{{ incident.title }}</h6>
+                                            <small>{{ incident.reported_at|date:"M d, Y H:i" }}</small>
+                                        </div>
+                                        <div class="d-flex w-100 justify-content-between">
+                                            <small>
+                                                <span class="badge" style="background-color: {{ incident.status.color }}">{{ incident.status.name }}</span>
+                                                <span class="badge" style="background-color: {{ incident.priority.color }}">{{ incident.priority.name }}</span>
+                                            </small>
+                                            <small>
+                                                {% if incident.assigned_to %}
+                                                    Assigned to: {{ incident.assigned_to.get_full_name|default:incident.assigned_to.username }}
+                                                {% else %}
+                                                    <span class="text-warning">Unassigned</span>
+                                                {% endif %}
+                                            </small>
+                                        </div>
+                                    </a>
+                                {% endfor %}
+                            </div>
+                        {% else %}
+                            <div class="text-center py-4">
+                                <i class="fas fa-clipboard fa-3x text-muted mb-3"></i>
+                                <h5>No recent incidents</h5>
+                                <p class="text-muted">No incidents have been reported recently</p>
+                            </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<!-- Chart.js -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js@3.7.1/dist/chart.min.js"></script>
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Incident Trend Chart
+        const trendCtx = document.getElementById('incidentTrendChart').getContext('2d');
+        const trendChart = new Chart(trendCtx, {
+            type: 'line',
+            data: {
+                labels: {{ trend_dates|safe }},
+                datasets: [{
+                    label: 'New Incidents',
+                    data: {{ trend_counts|safe }},
+                    backgroundColor: 'rgba(78, 115, 223, 0.05)',
+                    borderColor: 'rgba(78, 115, 223, 1)',
+                    borderWidth: 2,
+                    pointBackgroundColor: 'rgba(78, 115, 223, 1)',
+                    pointBorderColor: '#fff',
+                    pointHoverRadius: 5,
+                    pointHoverBackgroundColor: 'rgba(78, 115, 223, 1)',
+                    pointHoverBorderColor: '#fff',
+                    pointHitRadius: 10,
+                    pointBorderWidth: 2,
+                    tension: 0.3
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        ticks: {
+                            precision: 0
+                        }
+                    }
+                },
+                plugins: {
+                    title: {
+                        display: true,
+                        text: 'Daily Incident Count'
+                    }
+                }
+            }
+        });
+
+        // Status Distribution Chart
+        const statusCtx = document.getElementById('statusChart').getContext('2d');
+        const statusChart = new Chart(statusCtx, {
+            type: 'doughnut',
+            data: {
+                labels: [
+                    {% for status in status_counts %}
+                        '{{ status.name }}',
+                    {% endfor %}
+                ],
+                datasets: [{
+                    data: [
+                        {% for status in status_counts %}
+                            {{ status.incident_count }},
+                        {% endfor %}
+                    ],
+                    backgroundColor: [
+                        {% for status in status_counts %}
+                            '{{ status.color }}',
+                        {% endfor %}
+                    ],
+                    hoverOffset: 4
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        position: 'right',
+                    }
+                }
+            }
+        });
+
+        // Priority Distribution Chart
+        const priorityCtx = document.getElementById('priorityChart').getContext('2d');
+        const priorityChart = new Chart(priorityCtx, {
+            type: 'pie',
+            data: {
+                labels: [
+                    {% for priority in priority_counts %}
+                        '{{ priority.name }}',
+                    {% endfor %}
+                ],
+                datasets: [{
+                    data: [
+                        {% for priority in priority_counts %}
+                            {{ priority.incident_count }},
+                        {% endfor %}
+                    ],
+                    backgroundColor: [
+                        {% for priority in priority_counts %}
+                            '{{ priority.color }}',
+                        {% endfor %}
+                    ],
+                    hoverOffset: 4
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        position: 'right',
+                    }
+                }
+            }
+        });
+
+        // Category Distribution Chart
+        const categoryCtx = document.getElementById('categoryChart').getContext('2d');
+        const categoryChart = new Chart(categoryCtx, {
+            type: 'bar',
+            data: {
+                labels: [
+                    {% for category in category_counts %}
+                        '{{ category.name }}',
+                    {% endfor %}
+                ],
+                datasets: [{
+                    label: 'Incident Count',
+                    data: [
+                        {% for category in category_counts %}
+                            {{ category.incident_count }},
+                        {% endfor %}
+                    ],
+                    backgroundColor: 'rgba(78, 115, 223, 0.8)',
+                    borderColor: 'rgba(78, 115, 223, 1)',
+                    borderWidth: 1
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        ticks: {
+                            precision: 0
+                        }
+                    }
+                },
+                plugins: {
+                    legend: {
+                        display: false
+                    }
+                }
+            }
+        });
+    });
+</script>
+{% endblock %}

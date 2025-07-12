@@ -1,0 +1,470 @@
+{% extends "base.html" %}
+
+{% block title %}{{ asset.asset_name|default:"Asset Detail" }} - Asset Management System{% endblock %}
+
+{% block page_title %}Asset Detail: {{ asset.asset_name|default:"Unnamed Asset" }}{% endblock %}
+
+{% block breadcrumbs %}
+<li class="breadcrumb-item"><a href="{% url 'asset_dashboard' %}">Home</a></li>
+<li class="breadcrumb-item"><a href="{% url 'asset_list' %}">Assets</a></li>
+<li class="breadcrumb-item active">{{ asset.asset_name|default:"Asset Detail" }}</li>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- Action Buttons -->
+    <div class="d-flex justify-content-end mb-3">
+        {% if perms.assets.change_asset %}
+        <a href="{% url 'asset_update' asset.asset_id %}" class="btn btn-primary me-2">
+            <i class="fas fa-edit me-1"></i> Edit Asset
+        </a>
+        {% endif %}
+        
+        <a href="{% url 'asset_network_address_create' %}?asset={{ asset.asset_id }}" class="btn btn-info me-2">
+            <i class="fas fa-network-wired me-1"></i> Add Network Address
+        </a>
+        
+        {% if perms.incidents.add_incident %}
+        <a href="{% url 'incident_create' %}?asset={{ asset.asset_id }}" class="btn btn-warning me-2">
+            <i class="fas fa-exclamation-triangle me-1"></i> Report Incident
+        </a>
+        {% endif %}
+        
+        {% if perms.assets.delete_asset %}
+        <a href="{% url 'asset_delete' asset.asset_id %}" class="btn btn-danger">
+            <i class="fas fa-trash me-1"></i> Delete Asset
+        </a>
+        {% endif %}
+    </div>
+
+    <div class="row">
+        <!-- Main Asset Information -->
+        <div class="col-xl-8 col-lg-7">
+            <div class="card shadow mb-4">
+                <div class="card-header py-3 d-flex justify-content-between align-items-center">
+                    <h6 class="m-0 font-weight-bold text-primary">
+                        <i class="fas fa-info-circle me-2"></i>Asset Information
+                    </h6>
+                    <span class="badge {% if asset.is_active %}bg-success{% else %}bg-danger{% endif %}">
+                        {% if asset.is_active %}Active{% else %}Inactive{% endif %}
+                    </span>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <table class="table table-borderless">
+                                <tbody>
+                                    <tr>
+                                        <th scope="row" width="40%">Asset ID</th>
+                                        <td>{{ asset.asset_id }}</td>
+                                    </tr>
+                                    <tr>
+                                        <th scope="row">Asset Name</th>
+                                        <td>{{ asset.asset_name|default:"Not specified" }}</td>
+                                    </tr>
+                                    <tr>
+                                        <th scope="row">Category</th>
+                                        <td>
+                                            {% if asset.category %}
+                                            <a href="{% url 'asset_category_detail' asset.category.category_id %}">
+                                                {{ asset.category.category_name }}
+                                            </a>
+                                            {% else %}
+                                            <span class="text-muted">Not categorized</span>
+                                            {% endif %}
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <th scope="row">Asset Type</th>
+                                        <td>{{ asset.asset_type|default:"Not specified" }}</td>
+                                    </tr>
+                                    <tr>
+                                        <th scope="row">Make/Manufacturer</th>
+                                        <td>{{ asset.asset_make|default:"Not specified" }}</td>
+                                    </tr>
+                                    <tr>
+                                        <th scope="row">Parent Asset</th>
+                                        <td>
+                                            {% if asset.parent_asset %}
+                                            <a href="{% url 'asset_detail' asset.parent_asset.asset_id %}">
+                                                {{ asset.parent_asset.asset_name }}
+                                            </a>
+                                            {% else %}
+                                            <span class="text-muted">None</span>
+                                            {% endif %}
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                        <div class="col-md-6">
+                            <table class="table table-borderless">
+                                <tbody>
+                                    <tr>
+                                        <th scope="row" width="40%">Purchase ID</th>
+                                        <td>{{ asset.purchase_id|default:"Not specified" }}</td>
+                                    </tr>
+                                    <tr>
+                                        <th scope="row">Usage ID</th>
+                                        <td>{{ asset.usage_id|default:"Not specified" }}</td>
+                                    </tr>
+                                    <tr>
+                                        <th scope="row">Location</th>
+                                        <td>
+                                            {% if asset.location %}
+                                            <a href="{% url 'asset_location_detail' asset.location.location_id %}">
+                                                {% if asset.location.city %}
+                                                    {{ asset.location.city }}, {{ asset.location.state|default:"" }} {{ asset.location.country|default:"" }}
+                                                {% else %}
+                                                    {{ asset.location.address_type }}: {{ asset.location.address_value }}
+                                                {% endif %}
+                                            </a>
+                                            {% else %}
+                                            <span class="text-muted">No location specified</span>
+                                            {% endif %}
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <th scope="row">Purpose</th>
+                                        <td>{{ asset.asset_purpose|default:"Not specified" }}</td>
+                                    </tr>
+                                    <tr>
+                                        <th scope="row">Valid From</th>
+                                        <td>{{ asset.valid_from|date:"M d, Y H:i" }}</td>
+                                    </tr>
+                                    <tr>
+                                        <th scope="row">Valid To</th>
+                                        <td>{{ asset.valid_to|date:"M d, Y H:i"|default:"Not specified" }}</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                    
+                    {% if asset.feature %}
+                    <div class="mt-4">
+                        <h6 class="font-weight-bold">Hardware Features</h6>
+                        <div class="table-responsive">
+                            <table class="table table-bordered">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th>Feature Type</th>
+                                        <th>Feature Name</th>
+                                        <th>Description</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr>
+                                        <td>{{ asset.feature.feature_type }}</td>
+                                        <td>{{ asset.feature.feature_name }}</td>
+                                        <td>{{ asset.feature.feature_desc|default:"" }}</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        
+        <!-- Asset Summary Card -->
+        <div class="col-xl-4 col-lg-5">
+            <div class="card shadow mb-4">
+                <div class="card-header py-3">
+                    <h6 class="m-0 font-weight-bold text-primary">
+                        <i class="fas fa-chart-pie me-2"></i>Asset Summary
+                    </h6>
+                </div>
+                <div class="card-body">
+                    <div class="d-flex align-items-center justify-content-center mb-4">
+                        <div class="text-center">
+                            <i class="fas {% if asset.category %}fa-{{ asset.category.category_type|default:'cube' }}{% else %}fa-cube{% endif %} fa-5x text-gray-300 mb-3"></i>
+                            <h4 class="mb-0">{{ asset.asset_name|default:"Unnamed Asset" }}</h4>
+                            <div class="text-muted small">{{ asset.asset_type|default:"Unknown Type" }}</div>
+                        </div>
+                    </div>
+                    
+                    <div class="row text-center">
+                        <div class="col-4 border-end">
+                            <div class="h5 mb-0">{{ network_addresses|length }}</div>
+                            <div class="small text-muted">Network Addresses</div>
+                        </div>
+                        <div class="col-4 border-end">
+                            <div class="h5 mb-0">{{ child_assets|length }}</div>
+                            <div class="small text-muted">Child Assets</div>
+                        </div>
+                        <div class="col-4">
+                            <div class="h5 mb-0">{{ incidents|length }}</div>
+                            <div class="small text-muted">Incidents</div>
+                        </div>
+                    </div>
+                    
+                    <hr>
+                    
+                    <div class="mt-3">
+                        <h6 class="font-weight-bold">QR Code</h6>
+                        <div class="text-center py-3">
+                            <!-- Placeholder for QR code -->
+                            <img src="https://api.qrserver.com/v1/create-qr-code/?size=150x150&data={{ request.build_absolute_uri }}" alt="Asset QR Code" class="img-fluid border">
+                            <div class="mt-2">
+                                <a href="https://api.qrserver.com/v1/create-qr-code/?size=300x300&data={{ request.build_absolute_uri }}" class="btn btn-sm btn-outline-secondary" target="_blank">
+                                    <i class="fas fa-download me-1"></i> Download QR
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Tabs for Related Information -->
+    <div class="card shadow mb-4">
+        <div class="card-header py-3">
+            <ul class="nav nav-tabs card-header-tabs" id="assetDetailTabs" role="tablist">
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link active" id="network-tab" data-bs-toggle="tab" data-bs-target="#network" type="button" role="tab" aria-controls="network" aria-selected="true">
+                        <i class="fas fa-network-wired me-2"></i>Network Addresses
+                    </button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link" id="children-tab" data-bs-toggle="tab" data-bs-target="#children" type="button" role="tab" aria-controls="children" aria-selected="false">
+                        <i class="fas fa-sitemap me-2"></i>Child Assets
+                    </button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link" id="incidents-tab" data-bs-toggle="tab" data-bs-target="#incidents" type="button" role="tab" aria-controls="incidents" aria-selected="false">
+                        <i class="fas fa-exclamation-triangle me-2"></i>Incidents
+                    </button>
+                </li>
+            </ul>
+        </div>
+        <div class="card-body">
+            <div class="tab-content" id="assetDetailTabsContent">
+                <!-- Network Addresses Tab -->
+                <div class="tab-pane fade show active" id="network" role="tabpanel" aria-labelledby="network-tab">
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <h5 class="card-title">Network Addresses</h5>
+                        <a href="{% url 'asset_network_address_create' %}?asset={{ asset.asset_id }}" class="btn btn-sm btn-primary">
+                            <i class="fas fa-plus me-1"></i> Add Address
+                        </a>
+                    </div>
+                    
+                    <div class="table-responsive">
+                        <table class="table table-bordered table-hover">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Type</th>
+                                    <th>Address</th>
+                                    <th>Status</th>
+                                    <th>Valid From</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for address in network_addresses %}
+                                <tr>
+                                    <td>
+                                        {% if address.address_type == 'IP_ADDRESS' %}
+                                        <span class="badge bg-info">IP Address</span>
+                                        {% elif address.address_type == 'MAC_ID' %}
+                                        <span class="badge bg-secondary">MAC ID</span>
+                                        {% else %}
+                                        <span class="badge bg-light text-dark">{{ address.address_type }}</span>
+                                        {% endif %}
+                                    </td>
+                                    <td><code>{{ address.address_value }}</code></td>
+                                    <td>
+                                        {% if address.is_active %}
+                                        <span class="badge bg-success">Active</span>
+                                        {% else %}
+                                        <span class="badge bg-danger">Inactive</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>{{ address.valid_from|date:"M d, Y" }}</td>
+                                    <td>
+                                        <div class="btn-group" role="group">
+                                            <a href="{% url 'asset_network_address_update' address.id %}" class="btn btn-sm btn-primary">
+                                                <i class="fas fa-edit"></i>
+                                            </a>
+                                            <a href="{% url 'asset_network_address_delete' address.id %}" class="btn btn-sm btn-danger">
+                                                <i class="fas fa-trash"></i>
+                                            </a>
+                                        </div>
+                                    </td>
+                                </tr>
+                                {% empty %}
+                                <tr>
+                                    <td colspan="5" class="text-center py-3">
+                                        <div class="text-muted">
+                                            <i class="fas fa-network-wired fa-2x mb-2"></i>
+                                            <p>No network addresses found for this asset</p>
+                                            <a href="{% url 'asset_network_address_create' %}?asset={{ asset.asset_id }}" class="btn btn-sm btn-primary">
+                                                <i class="fas fa-plus me-1"></i> Add Address
+                                            </a>
+                                        </div>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                
+                <!-- Child Assets Tab -->
+                <div class="tab-pane fade" id="children" role="tabpanel" aria-labelledby="children-tab">
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <h5 class="card-title">Child Assets</h5>
+                        <a href="{% url 'asset_create' %}" class="btn btn-sm btn-primary">
+                            <i class="fas fa-plus me-1"></i> Add Child Asset
+                        </a>
+                    </div>
+                    
+                    <div class="table-responsive">
+                        <table class="table table-bordered table-hover">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Asset Name</th>
+                                    <th>Category</th>
+                                    <th>Type</th>
+                                    <th>Make</th>
+                                    <th>Status</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for child in child_assets %}
+                                <tr>
+                                    <td>
+                                        <a href="{% url 'asset_detail' child.asset_id %}">
+                                            {{ child.asset_name|default:"Unnamed Asset" }}
+                                        </a>
+                                    </td>
+                                    <td>
+                                        {% if child.category %}
+                                        {{ child.category.category_name }}
+                                        {% else %}
+                                        <span class="text-muted">Uncategorized</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>{{ child.asset_type|default:"Unknown" }}</td>
+                                    <td>{{ child.asset_make|default:"Unknown" }}</td>
+                                    <td>
+                                        {% if child.is_active %}
+                                        <span class="badge bg-success">Active</span>
+                                        {% else %}
+                                        <span class="badge bg-danger">Inactive</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        <div class="btn-group" role="group">
+                                            <a href="{% url 'asset_detail' child.asset_id %}" class="btn btn-sm btn-info">
+                                                <i class="fas fa-eye"></i>
+                                            </a>
+                                            <a href="{% url 'asset_update' child.asset_id %}" class="btn btn-sm btn-primary">
+                                                <i class="fas fa-edit"></i>
+                                            </a>
+                                        </div>
+                                    </td>
+                                </tr>
+                                {% empty %}
+                                <tr>
+                                    <td colspan="6" class="text-center py-3">
+                                        <div class="text-muted">
+                                            <i class="fas fa-sitemap fa-2x mb-2"></i>
+                                            <p>No child assets found for this asset</p>
+                                            <a href="{% url 'asset_create' %}" class="btn btn-sm btn-primary">
+                                                <i class="fas fa-plus me-1"></i> Add Child Asset
+                                            </a>
+                                        </div>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                
+                <!-- Incidents Tab -->
+                <div class="tab-pane fade" id="incidents" role="tabpanel" aria-labelledby="incidents-tab">
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <h5 class="card-title">Related Incidents</h5>
+                        <a href="{% url 'incident_create' %}?asset={{ asset.asset_id }}" class="btn btn-sm btn-warning">
+                            <i class="fas fa-plus me-1"></i> Report Incident
+                        </a>
+                    </div>
+                    
+                    <div class="table-responsive">
+                        <table class="table table-bordered table-hover">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>ID</th>
+                                    <th>Title</th>
+                                    <th>Status</th>
+                                    <th>Priority</th>
+                                    <th>Reported</th>
+                                    <th>Assigned To</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for incident in incidents %}
+                                <tr>
+                                    <td>{{ incident.id }}</td>
+                                    <td>
+                                        <a href="{% url 'incident_detail' incident.id %}">
+                                            {{ incident.title }}
+                                        </a>
+                                    </td>
+                                    <td>
+                                        <span class="badge" style="background-color: {{ incident.status.color }}">
+                                            {{ incident.status.name }}
+                                        </span>
+                                    </td>
+                                    <td>
+                                        <span class="badge" style="background-color: {{ incident.priority.color }}">
+                                            {{ incident.priority.name }}
+                                        </span>
+                                    </td>
+                                    <td>{{ incident.reported_at|date:"M d, Y" }}</td>
+                                    <td>
+                                        {% if incident.assigned_to %}
+                                        {{ incident.assigned_to.get_full_name|default:incident.assigned_to.username }}
+                                        {% else %}
+                                        <span class="text-muted">Unassigned</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        <div class="btn-group" role="group">
+                                            <a href="{% url 'incident_detail' incident.id %}" class="btn btn-sm btn-info">
+                                                <i class="fas fa-eye"></i>
+                                            </a>
+                                            <a href="{% url 'incident_update' incident.id %}" class="btn btn-sm btn-primary">
+                                                <i class="fas fa-edit"></i>
+                                            </a>
+                                        </div>
+                                    </td>
+                                </tr>
+                                {% empty %}
+                                <tr>
+                                    <td colspan="7" class="text-center py-3">
+                                        <div class="text-muted">
+                                            <i class="fas fa-check-circle fa-2x mb-2"></i>
+                                            <p>No incidents reported for this asset</p>
+                                            <a href="{% url 'incident_create' %}?asset={{ asset.asset_id }}" class="btn btn-sm btn-warning">
+                                                <i class="fas fa-plus me-1"></i> Report Incident
+                                            </a>
+                                        </div>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

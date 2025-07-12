@@ -1,0 +1,223 @@
+{% extends "base.html" %}
+
+{% block title %}Incident Categories{% endblock %}
+
+{% block page_title %}Incident Categories{% endblock %}
+
+{% block breadcrumbs %}
+    <li class="breadcrumb-item"><a href="{% url 'asset_dashboard' %}">Home</a></li>
+    <li class="breadcrumb-item"><a href="{% url 'incident_dashboard' %}">Incidents</a></li>
+    <li class="breadcrumb-item active">Categories</li>
+{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col">
+        <div class="card">
+            <div class="card-header">
+                <div class="d-flex justify-content-between align-items-center">
+                    <h5 class="card-title mb-0">
+                        <i class="fas fa-folder me-2"></i>Incident Categories
+                    </h5>
+                    <a href="{% url 'incident_category_create' %}" class="btn btn-primary">
+                        <i class="fas fa-plus-circle me-1"></i>Add Category
+                    </a>
+                </div>
+            </div>
+            <div class="card-body">
+                <!-- Filter Form -->
+                <form method="get" class="mb-4">
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <div class="input-group">
+                                <input type="text" name="search" class="form-control" placeholder="Search categories..." value="{{ search_term }}">
+                                <button class="btn btn-outline-secondary" type="submit">
+                                    <i class="fas fa-search"></i>
+                                </button>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <select name="sort" class="form-select">
+                                <option value="name" {% if sort == 'name' %}selected{% endif %}>Sort by Name</option>
+                                <option value="-name" {% if sort == '-name' %}selected{% endif %}>Sort by Name (Desc)</option>
+                                <option value="created_at" {% if sort == 'created_at' %}selected{% endif %}>Sort by Created Date</option>
+                                <option value="-created_at" {% if sort == '-created_at' %}selected{% endif %}>Sort by Created Date (Desc)</option>
+                                <option value="incident_count" {% if sort == 'incident_count' %}selected{% endif %}>Sort by Incident Count</option>
+                                <option value="-incident_count" {% if sort == '-incident_count' %}selected{% endif %}>Sort by Incident Count (Desc)</option>
+                            </select>
+                        </div>
+                        <div class="col-md-2">
+                            <div class="d-grid">
+                                <button type="submit" class="btn btn-primary">Filter</button>
+                            </div>
+                        </div>
+                    </div>
+                </form>
+
+                {% if categories %}
+                    <div class="table-responsive">
+                        <table class="table table-striped table-hover">
+                            <thead>
+                                <tr>
+                                    <th>Category Name</th>
+                                    <th>Description</th>
+                                    <th>Default Priority</th>
+                                    <th>Workflow Template</th>
+                                    <th>Incidents</th>
+                                    <th>Created</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for category in categories %}
+                                <tr>
+                                    <td>
+                                        <a href="{% url 'incident_list' %}?category={{ category.id }}">
+                                            {{ category.name }}
+                                        </a>
+                                    </td>
+                                    <td>{{ category.description|truncatechars:50|default:"-" }}</td>
+                                    <td>
+                                        {% if category.default_priority %}
+                                            <span class="badge" style="background-color: {{ category.default_priority.color }}; color: {% if category.default_priority.is_dark_color %}#ffffff{% else %}#212529{% endif %}">
+                                                {{ category.default_priority.name }}
+                                            </span>
+                                        {% else %}
+                                            <span class="text-muted">-</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if category.workflow_template %}
+                                            <a href="{% url 'workflow_template_detail' category.workflow_template.pk %}">
+                                                {{ category.workflow_template.name }}
+                                            </a>
+                                        {% else %}
+                                            <span class="text-muted">-</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        <span class="badge bg-info">{{ category.incident_set.count }}</span>
+                                    </td>
+                                    <td>{{ category.created_at|date:"Y-m-d H:i" }}</td>
+                                    <td>
+                                        <div class="btn-group btn-group-sm">
+                                            <a href="{% url 'incident_category_update' category.pk %}" class="btn btn-outline-primary" title="Edit">
+                                                <i class="fas fa-edit"></i>
+                                            </a>
+                                            <a href="{% url 'incident_category_delete' category.pk %}" class="btn btn-outline-danger" title="Delete">
+                                                <i class="fas fa-trash-alt"></i>
+                                            </a>
+                                        </div>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    
+                    <!-- Pagination -->
+                    {% include "components/pagination.html" with page_obj=page_obj %}
+                    
+                    <div class="mt-3">
+                        <p class="text-muted">Showing {{ categories|length }} of {{ page_obj.paginator.count }} categories</p>
+                    </div>
+                {% else %}
+                    <div class="alert alert-info">
+                        <i class="fas fa-info-circle me-2"></i>No incident categories found matching your criteria.
+                        {% if search_term %}
+                            <a href="{% url 'incident_category_list' %}" class="alert-link">Clear search</a>
+                        {% else %}
+                            <a href="{% url 'incident_category_create' %}" class="alert-link">Create your first incident category</a>
+                        {% endif %}
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">
+                    <i class="fas fa-info-circle me-2"></i>About Incident Categories
+                </h5>
+            </div>
+            <div class="card-body">
+                <p>Incident categories help classify and organize incidents by type, allowing for better reporting and analysis.</p>
+                <p>Key benefits of categories:</p>
+                <ul>
+                    <li><strong>Classification</strong> - Group similar incidents together</li>
+                    <li><strong>Reporting</strong> - Generate statistics by incident type</li>
+                    <li><strong>Workflow</strong> - Apply specific workflow templates to different incident types</li>
+                    <li><strong>Prioritization</strong> - Set default priorities for specific incident types</li>
+                </ul>
+                <div class="alert alert-info mt-3">
+                    <i class="fas fa-lightbulb me-2"></i>
+                    <strong>Tip:</strong> Create categories that align with your organization's structure and common incident types.
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">
+                    <i class="fas fa-lightbulb me-2"></i>Category Best Practices
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="mb-3">
+                            <h6><i class="fas fa-layer-group text-primary me-2"></i>Hierarchical Structure</h6>
+                            <p class="small">Consider creating a hierarchical structure with main categories and subcategories for more detailed classification.</p>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="mb-3">
+                            <h6><i class="fas fa-sitemap text-success me-2"></i>Workflow Templates</h6>
+                            <p class="small">Associate specific workflow templates with each category to standardize incident handling procedures.</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="mb-3">
+                            <h6><i class="fas fa-exclamation-triangle text-warning me-2"></i>Default Priorities</h6>
+                            <p class="small">Set appropriate default priorities for each category based on typical business impact.</p>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="mb-3">
+                            <h6><i class="fas fa-chart-pie text-info me-2"></i>Balanced Distribution</h6>
+                            <p class="small">Create enough categories to be meaningful but not so many that they become difficult to manage.</p>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="alert alert-warning mt-2">
+                    <i class="fas fa-exclamation-triangle me-2"></i>
+                    <strong>Important:</strong> Regularly review your categories to ensure they remain relevant to your organization's needs.
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Auto-submit form when select fields change
+        const sortField = document.querySelector('select[name="sort"]');
+        if (sortField) {
+            sortField.addEventListener('change', function() {
+                this.form.submit();
+            });
+        }
+    });
+</script>
+{% endblock %}

@@ -1,0 +1,5 @@
+venv\Scripts\activate    --- To activate the environment
+python manage.py runserver --- To run the server
+
+python manage.py makemigrations --- if models changed
+python manage.py migrate

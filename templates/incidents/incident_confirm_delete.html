@@ -1,0 +1,163 @@
+{% extends "base.html" %}
+
+{% block title %}Delete Incident: {{ incident.title }}{% endblock %}
+
+{% block page_title %}Delete Incident: {{ incident.title }}{% endblock %}
+
+{% block breadcrumbs %}
+    <li class="breadcrumb-item"><a href="{% url 'asset_dashboard' %}">Home</a></li>
+    <li class="breadcrumb-item"><a href="{% url 'incident_dashboard' %}">Incidents</a></li>
+    <li class="breadcrumb-item"><a href="{% url 'incident_list' %}">All Incidents</a></li>
+    <li class="breadcrumb-item"><a href="{% url 'incident_detail' incident.pk %}">{{ incident.title|truncatechars:30 }}</a></li>
+    <li class="breadcrumb-item active">Delete</li>
+{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-md-8">
+        <div class="card border-danger">
+            <div class="card-header bg-danger text-white">
+                <h5 class="card-title mb-0">
+                    <i class="fas fa-exclamation-triangle me-2"></i>Confirm Incident Deletion
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="alert alert-warning">
+                    <i class="fas fa-exclamation-circle me-2"></i>
+                    <strong>Warning:</strong> This action cannot be undone. All incident details, comments, and history will be permanently removed.
+                </div>
+                
+                <p>Are you sure you want to delete the following incident?</p>
+                
+                <table class="table table-bordered">
+                    <tbody>
+                        <tr>
+                            <th style="width: 30%">Title</th>
+                            <td>{{ incident.title }}</td>
+                        </tr>
+                        <tr>
+                            <th>ID / Reference</th>
+                            <td>{{ incident.reference_id }}</td>
+                        </tr>
+                        <tr>
+                            <th>Category</th>
+                            <td>{{ incident.category.name }}</td>
+                        </tr>
+                        <tr>
+                            <th>Priority</th>
+                            <td>
+                                <span class="badge" style="background-color: {{ incident.priority.color }}; color: {% if incident.priority.is_dark_color %}#ffffff{% else %}#212529{% endif %}">
+                                    {{ incident.priority.name }}
+                                </span>
+                            </td>
+                        </tr>
+                        <tr>
+                            <th>Status</th>
+                            <td>
+                                <span class="badge" style="background-color: {{ incident.status.color }}; color: {% if incident.status.is_dark_color %}#ffffff{% else %}#212529{% endif %}">
+                                    {{ incident.status.name }}
+                                </span>
+                            </td>
+                        </tr>
+                        <tr>
+                            <th>Created</th>
+                            <td>{{ incident.created_at }} by {{ incident.created_by.get_full_name|default:incident.created_by.username }}</td>
+                        </tr>
+                        <tr>
+                            <th>Description</th>
+                            <td>{{ incident.description|linebreaks|truncatewords:50 }}</td>
+                        </tr>
+                    </tbody>
+                </table>
+                
+                {% if incident.affected_assets.exists %}
+                <div class="alert alert-info mt-3">
+                    <i class="fas fa-server me-2"></i>
+                    <strong>Affected Assets:</strong> This incident is linked to {{ incident.affected_assets.count }} asset(s). These relationships will be removed.
+                    <ul class="mb-0 mt-2">
+                        {% for asset in incident.affected_assets.all|slice:":5" %}
+                            <li>{{ asset.asset_name }} ({{ asset.category.category_name }})</li>
+                        {% endfor %}
+                        {% if incident.affected_assets.count > 5 %}
+                            <li>... and {{ incident.affected_assets.count|add:"-5" }} more</li>
+                        {% endif %}
+                    </ul>
+                </div>
+                {% endif %}
+                
+                {% if incident.comments.exists %}
+                <div class="alert alert-warning mt-3">
+                    <i class="fas fa-comments me-2"></i>
+                    <strong>Comments:</strong> {{ incident.comments.count }} comment(s) associated with this incident will be deleted.
+                </div>
+                {% endif %}
+                
+                {% if incident.attachments.exists %}
+                <div class="alert alert-warning mt-3">
+                    <i class="fas fa-paperclip me-2"></i>
+                    <strong>Attachments:</strong> {{ incident.attachments.count }} attachment(s) will be deleted.
+                </div>
+                {% endif %}
+                
+                {% if incident.history.exists %}
+                <div class="alert alert-warning mt-3">
+                    <i class="fas fa-history me-2"></i>
+                    <strong>History:</strong> {{ incident.history.count }} history record(s) will be deleted.
+                </div>
+                {% endif %}
+                
+                <form method="post">
+                    {% csrf_token %}
+                    <div class="d-flex justify-content-between mt-4">
+                        <a href="{% url 'incident_detail' incident.pk %}" class="btn btn-secondary">
+                            <i class="fas fa-arrow-left me-1"></i>Cancel
+                        </a>
+                        <button type="submit" class="btn btn-danger">
+                            <i class="fas fa-trash-alt me-1"></i>Delete Incident
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">
+                    <i class="fas fa-info-circle me-2"></i>Information
+                </h5>
+            </div>
+            <div class="card-body">
+                <p>Deleting this incident will:</p>
+                <ul>
+                    <li>Permanently remove all incident details</li>
+                    <li>Delete all comments and conversation history</li>
+                    <li>Remove all attachments associated with this incident</li>
+                    <li>Delete all history and audit records</li>
+                    <li>Remove relationships to affected assets</li>
+                </ul>
+                
+                <div class="alert alert-danger mt-3">
+                    <i class="fas fa-exclamation-triangle me-2"></i>
+                    <strong>Important:</strong> This action cannot be reversed. Consider closing the incident instead if you need to preserve the record.
+                </div>
+                
+                {% if not user.is_staff and not user.has_perm 'incidents.delete_incident' %}
+                <div class="alert alert-warning mt-3">
+                    <i class="fas fa-lock me-2"></i>
+                    <strong>Note:</strong> You may need special permissions to delete this incident.
+                </div>
+                {% endif %}
+                
+                {% if incident.is_closed %}
+                <div class="alert alert-info mt-3">
+                    <i class="fas fa-check-circle me-2"></i>
+                    <strong>Note:</strong> This incident is already closed. Consider keeping it for record-keeping purposes.
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,361 @@
+{% extends "base.html" %}
+
+{% block title %}Incidents - Asset Management System{% endblock %}
+
+{% block page_title %}Incidents{% endblock %}
+
+{% block breadcrumbs %}
+<li class="breadcrumb-item"><a href="{% url 'asset_dashboard' %}">Home</a></li>
+<li class="breadcrumb-item active">Incidents</li>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- Header with actions -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1 class="h3 mb-0 text-gray-800">
+            <i class="fas fa-exclamation-triangle me-2"></i>Incidents
+            {% if incidents %}
+                <span class="badge bg-secondary">{{ page_obj.paginator.count }}</span>
+            {% endif %}
+        </h1>
+        <div>
+            {% if can_create %}
+            <a href="{% url 'incident_create' %}" class="btn btn-primary">
+                <i class="fas fa-plus-circle me-2"></i>Report Incident
+            </a>
+            {% endif %}
+            <a href="{% url 'incident_report' %}" class="btn btn-info ms-2">
+                <i class="fas fa-chart-bar me-2"></i>Generate Report
+            </a>
+        </div>
+    </div>
+
+    <!-- Filters -->
+    <div class="card shadow mb-4">
+        <div class="card-header py-3 d-flex justify-content-between align-items-center">
+            <h6 class="m-0 font-weight-bold text-primary">
+                <i class="fas fa-filter me-2"></i>Filters
+            </h6>
+            <button class="btn btn-sm btn-outline-primary" type="button" data-bs-toggle="collapse" data-bs-target="#filterCollapse" aria-expanded="false" aria-controls="filterCollapse">
+                <i class="fas fa-chevron-down"></i>
+            </button>
+        </div>
+        <div class="collapse show" id="filterCollapse">
+            <div class="card-body">
+                <form method="get" id="filterForm">
+                    <div class="row">
+                        <!-- Search -->
+                        <div class="col-md-4 mb-3">
+                            <div class="input-group">
+                                <span class="input-group-text"><i class="fas fa-search"></i></span>
+                                <input type="text" class="form-control" id="search" name="search" placeholder="Search incidents..." value="{{ search_term }}">
+                                {% if search_term %}
+                                <button type="button" class="btn btn-outline-secondary" onclick="clearSearch()">
+                                    <i class="fas fa-times"></i>
+                                </button>
+                                {% endif %}
+                            </div>
+                        </div>
+                        
+                        <!-- Status Filter -->
+                        <div class="col-md-2 mb-3">
+                            <select class="form-select" name="status" id="status" onchange="this.form.submit()">
+                                <option value="">All Statuses</option>
+                                <option value="open" {% if status_filter == 'open' %}selected{% endif %}>Open</option>
+                                <option value="closed" {% if status_filter == 'closed' %}selected{% endif %}>Closed</option>
+                                <optgroup label="Specific Status">
+                                    {% for status in statuses %}
+                                    <option value="{{ status.id }}" {% if status_filter == status.id|stringformat:"s" %}selected{% endif %}>
+                                        {{ status.name }}
+                                    </option>
+                                    {% endfor %}
+                                </optgroup>
+                            </select>
+                        </div>
+                        
+                        <!-- Priority Filter -->
+                        <div class="col-md-2 mb-3">
+                            <select class="form-select" name="priority" id="priority" onchange="this.form.submit()">
+                                <option value="">All Priorities</option>
+                                {% for priority in priorities %}
+                                <option value="{{ priority.id }}" {% if priority_filter == priority.id|stringformat:"s" %}selected{% endif %}>
+                                    {{ priority.name }}
+                                </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        
+                        <!-- Category Filter -->
+                        <div class="col-md-2 mb-3">
+                            <select class="form-select" name="category" id="category" onchange="this.form.submit()">
+                                <option value="">All Categories</option>
+                                {% for category in categories %}
+                                <option value="{{ category.id }}" {% if category_filter == category.id|stringformat:"s" %}selected{% endif %}>
+                                    {{ category.name }}
+                                </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        
+                        <!-- Assigned Filter -->
+                        <div class="col-md-2 mb-3">
+                            <select class="form-select" name="assigned" id="assigned" onchange="this.form.submit()">
+                                <option value="">All Assignments</option>
+                                <option value="me" {% if assigned_filter == 'me' %}selected{% endif %}>Assigned to Me</option>
+                                <option value="unassigned" {% if assigned_filter == 'unassigned' %}selected{% endif %}>Unassigned</option>
+                            </select>
+                        </div>
+                    </div>
+                    
+                    <div class="row">
+                        <!-- Reported Filter -->
+                        <div class="col-md-3 mb-3">
+                            <select class="form-select" name="reported" id="reported" onchange="this.form.submit()">
+                                <option value="">All Reporters</option>
+                                <option value="me" {% if reported_filter == 'me' %}selected{% endif %}>Reported by Me</option>
+                            </select>
+                        </div>
+                        
+                        <!-- Due Date Filter -->
+                        <div class="col-md-3 mb-3">
+                            <select class="form-select" name="due" id="due" onchange="this.form.submit()">
+                                <option value="">All Due Dates</option>
+                                <option value="overdue" {% if due_filter == 'overdue' %}selected{% endif %}>Overdue</option>
+                                <option value="today" {% if due_filter == 'today' %}selected{% endif %}>Due Today</option>
+                                <option value="week" {% if due_filter == 'week' %}selected{% endif %}>Due This Week</option>
+                            </select>
+                        </div>
+                        
+                        <!-- Asset Filter -->
+                        <div class="col-md-3 mb-3">
+                            <select class="form-select" name="asset" id="asset" onchange="this.form.submit()">
+                                <option value="">All Assets</option>
+                                {% if asset_filter %}
+                                <option value="{{ asset_filter }}" selected>Current Asset</option>
+                                {% endif %}
+                            </select>
+                        </div>
+                        
+                        <!-- Filter Actions -->
+                        <div class="col-md-3 mb-3">
+                            <div class="d-grid gap-2">
+                                <button type="submit" class="btn btn-primary">
+                                    <i class="fas fa-filter me-2"></i>Apply
+                                </button>
+                                <a href="{% url 'incident_list' %}" class="btn btn-outline-secondary">
+                                    <i class="fas fa-redo me-2"></i>Reset
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Incidents Table -->
+    <div class="card shadow mb-4">
+        <div class="card-header py-3">
+            <h6 class="m-0 font-weight-bold text-primary">
+                <i class="fas fa-list me-2"></i>Incident List
+            </h6>
+        </div>
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-bordered table-hover table-striped">
+                    <thead class="table-light">
+                        <tr>
+                            <th>
+                                <a href="?{% for key, value in request.GET.items %}{% if key != 'sort' and key != 'page' %}{{ key }}={{ value }}&{% endif %}{% endfor %}sort={% if sort == 'title' %}-{% endif %}title" class="text-decoration-none text-dark">
+                                    Title
+                                    {% if sort == 'title' %}
+                                    <i class="fas fa-sort-down ms-1"></i>
+                                    {% elif sort == '-title' %}
+                                    <i class="fas fa-sort-up ms-1"></i>
+                                    {% else %}
+                                    <i class="fas fa-sort ms-1 text-muted"></i>
+                                    {% endif %}
+                                </a>
+                            </th>
+                            <th>Status</th>
+                            <th>
+                                <a href="?{% for key, value in request.GET.items %}{% if key != 'sort' and key != 'page' %}{{ key }}={{ value }}&{% endif %}{% endfor %}sort={% if sort == 'priority' %}-{% endif %}priority" class="text-decoration-none text-dark">
+                                    Priority
+                                    {% if sort == 'priority' %}
+                                    <i class="fas fa-sort-down ms-1"></i>
+                                    {% elif sort == '-priority' %}
+                                    <i class="fas fa-sort-up ms-1"></i>
+                                    {% else %}
+                                    <i class="fas fa-sort ms-1 text-muted"></i>
+                                    {% endif %}
+                                </a>
+                            </th>
+                            <th>Category</th>
+                            <th>Asset</th>
+                            <th>
+                                <a href="?{% for key, value in request.GET.items %}{% if key != 'sort' and key != 'page' %}{{ key }}={{ value }}&{% endif %}{% endfor %}sort={% if sort == 'reported_at' %}-{% endif %}reported_at" class="text-decoration-none text-dark">
+                                    Reported
+                                    {% if sort == 'reported_at' %}
+                                    <i class="fas fa-sort-down ms-1"></i>
+                                    {% elif sort == '-reported_at' %}
+                                    <i class="fas fa-sort-up ms-1"></i>
+                                    {% else %}
+                                    <i class="fas fa-sort ms-1 text-muted"></i>
+                                    {% endif %}
+                                </a>
+                            </th>
+                            <th>Assigned To</th>
+                            <th>
+                                <a href="?{% for key, value in request.GET.items %}{% if key != 'sort' and key != 'page' %}{{ key }}={{ value }}&{% endif %}{% endfor %}sort={% if sort == 'due_date' %}-{% endif %}due_date" class="text-decoration-none text-dark">
+                                    Due Date
+                                    {% if sort == 'due_date' %}
+                                    <i class="fas fa-sort-down ms-1"></i>
+                                    {% elif sort == '-due_date' %}
+                                    <i class="fas fa-sort-up ms-1"></i>
+                                    {% else %}
+                                    <i class="fas fa-sort ms-1 text-muted"></i>
+                                    {% endif %}
+                                </a>
+                            </th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for incident in incidents %}
+                        <tr {% if incident.due_date and incident.due_date < now and not incident.status.is_closed %}class="table-danger"{% endif %}>
+                            <td>
+                                <a href="{% url 'incident_detail' incident.id %}">
+                                    {{ incident.title }}
+                                </a>
+                            </td>
+                            <td>
+                                <span class="badge" style="background-color: {{ incident.status.color|default:'#6c757d' }}">
+                                    {{ incident.status.name }}
+                                </span>
+                            </td>
+                            <td>
+                                <span class="badge" style="background-color: {{ incident.priority.color|default:'#6c757d' }}">
+                                    {{ incident.priority.name }}
+                                </span>
+                            </td>
+                            <td>
+                                {% if incident.category %}
+                                {{ incident.category.name }}
+                                {% else %}
+                                <span class="text-muted">Uncategorized</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if incident.asset %}
+                                <a href="{% url 'asset_detail' incident.asset.asset_id %}">
+                                    {{ incident.asset.asset_name|default:"Unnamed Asset" }}
+                                </a>
+                                {% else %}
+                                <span class="text-muted">No asset</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {{ incident.reported_at|date:"M d, Y" }}
+                                <small class="text-muted d-block">{{ incident.reported_at|time:"H:i" }}</small>
+                            </td>
+                            <td>
+                                {% if incident.assigned_to %}
+                                {{ incident.assigned_to.get_full_name|default:incident.assigned_to.username }}
+                                {% else %}
+                                <span class="badge bg-warning text-dark">Unassigned</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if incident.due_date %}
+                                {{ incident.due_date|date:"M d, Y" }}
+                                <small class="text-muted d-block">{{ incident.due_date|time:"H:i" }}</small>
+                                {% else %}
+                                <span class="text-muted">No due date</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <div class="btn-group" role="group">
+                                    <a href="{% url 'incident_detail' incident.id %}" class="btn btn-sm btn-info" title="View">
+                                        <i class="fas fa-eye"></i>
+                                    </a>
+                                    {% if perms.incidents.change_incident %}
+                                    <a href="{% url 'incident_update' incident.id %}" class="btn btn-sm btn-primary" title="Edit">
+                                        <i class="fas fa-edit"></i>
+                                    </a>
+                                    {% endif %}
+                                    {% if perms.incidents.delete_incident %}
+                                    <a href="{% url 'incident_delete' incident.id %}" class="btn btn-sm btn-danger" title="Delete">
+                                        <i class="fas fa-trash"></i>
+                                    </a>
+                                    {% endif %}
+                                </div>
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="9" class="text-center py-5">
+                                <div class="text-muted mb-3">
+                                    <i class="fas fa-clipboard-check fa-4x"></i>
+                                </div>
+                                <h5>No incidents found</h5>
+                                <p>Try adjusting your search or filter criteria</p>
+                                {% if can_create %}
+                                <a href="{% url 'incident_create' %}" class="btn btn-primary">
+                                    <i class="fas fa-plus-circle me-2"></i>Report Incident
+                                </a>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            
+            <!-- Pagination -->
+            {% include "components/pagination.html" %}
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Asset search autocomplete
+        const assetSelect = document.getElementById('asset');
+        if (assetSelect) {
+            // Initialize select2 for asset search if available
+            if (typeof $.fn.select2 !== 'undefined') {
+                $(assetSelect).select2({
+                    placeholder: 'Search for an asset...',
+                    allowClear: true,
+                    ajax: {
+                        url: '{% url "api_asset_search" %}',
+                        dataType: 'json',
+                        delay: 250,
+                        data: function (params) {
+                            return {
+                                term: params.term || '',
+                                page: params.page || 1
+                            };
+                        },
+                        processResults: function (data) {
+                            return {
+                                results: data.results
+                            };
+                        },
+                        cache: true
+                    },
+                    minimumInputLength: 2
+                });
+            }
+        }
+    });
+
+    function clearSearch() {
+        document.getElementById('search').value = '';
+        document.getElementById('filterForm').submit();
+    }
+</script>
+{% endblock %}

@@ -1,0 +1,393 @@
+{% extends "base.html" %}
+
+{% block title %}
+    {% if address %}Edit Network Address: {{ address.address_value }}{% else %}Create New Network Address{% endif %}
+{% endblock %}
+
+{% block page_title %}
+    {% if address %}Edit Network Address: {{ address.address_value }}{% else %}Create New Network Address{% endif %}
+{% endblock %}
+
+{% block breadcrumbs %}
+    <li class="breadcrumb-item"><a href="{% url 'asset_dashboard' %}">Home</a></li>
+    <li class="breadcrumb-item"><a href="{% url 'asset_network_address_list' %}">Network Addresses</a></li>
+    <li class="breadcrumb-item active">
+        {% if address %}Edit Network Address{% else %}Create Network Address{% endif %}
+    </li>
+{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">
+                    {% if address %}
+                        <i class="fas fa-edit me-2"></i>Edit Network Address
+                    {% else %}
+                        <i class="fas fa-plus-circle me-2"></i>Create New Network Address
+                    {% endif %}
+                </h5>
+            </div>
+            <div class="card-body">
+                <form method="post" novalidate>
+                    {% csrf_token %}
+                    
+                    {% if form.non_field_errors %}
+                        <div class="alert alert-danger">
+                            {% for error in form.non_field_errors %}
+                                {{ error }}
+                            {% endfor %}
+                        </div>
+                    {% endif %}
+                    
+                    <div class="mb-3">
+                        <label for="{{ form.asset.id_for_label }}" class="form-label">Asset</label>
+                        <select name="{{ form.asset.name }}" 
+                                id="{{ form.asset.id_for_label }}" 
+                                class="form-select {% if form.asset.errors %}is-invalid{% endif %}" 
+                                required>
+                            <option value="">Select Asset</option>
+                            {% for choice in form.asset.field.queryset %}
+                                <option value="{{ choice.pk }}" {% if form.asset.value|stringformat:"s" == choice.pk|stringformat:"s" %}selected{% endif %}>
+                                    {{ choice.asset_name }} ({{ choice.asset_id }})
+                                </option>
+                            {% endfor %}
+                        </select>
+                        {% if form.asset.errors %}
+                            <div class="invalid-feedback">
+                                {% for error in form.asset.errors %}
+                                    {{ error }}
+                                {% endfor %}
+                            </div>
+                        {% endif %}
+                        <small class="form-text text-muted">The asset this network address belongs to</small>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="{{ form.address_type.id_for_label }}" class="form-label">Address Type</label>
+                        <select name="{{ form.address_type.name }}" 
+                                id="{{ form.address_type.id_for_label }}" 
+                                class="form-select {% if form.address_type.errors %}is-invalid{% endif %}" 
+                                required>
+                            <option value="">Select Address Type</option>
+                            <option value="IP_ADDRESS" {% if form.address_type.value == 'IP_ADDRESS' %}selected{% endif %}>IP Address</option>
+                            <option value="MAC_ID" {% if form.address_type.value == 'MAC_ID' %}selected{% endif %}>MAC Address</option>
+                        </select>
+                        {% if form.address_type.errors %}
+                            <div class="invalid-feedback">
+                                {% for error in form.address_type.errors %}
+                                    {{ error }}
+                                {% endfor %}
+                            </div>
+                        {% endif %}
+                        <small class="form-text text-muted">Type of network address</small>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="{{ form.address_value.id_for_label }}" class="form-label">Address Value</label>
+                        <input type="text" 
+                               name="{{ form.address_value.name }}" 
+                               id="{{ form.address_value.id_for_label }}" 
+                               class="form-control {% if form.address_value.errors %}is-invalid{% endif %}" 
+                               value="{{ form.address_value.value|default:'' }}" 
+                               required>
+                        {% if form.address_value.errors %}
+                            <div class="invalid-feedback">
+                                {% for error in form.address_value.errors %}
+                                    {{ error }}
+                                {% endfor %}
+                            </div>
+                        {% endif %}
+                        <div id="addressHelpBlock" class="form-text">
+                            <span id="ip_address_help" class="d-none">Format: xxx.xxx.xxx.xxx (e.g., 192.168.1.1)</span>
+                            <span id="mac_address_help" class="d-none">Format: XX:XX:XX:XX:XX:XX (e.g., 00:1A:2B:3C:4D:5E)</span>
+                            <span id="default_help">Enter the network address value</span>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3 form-check">
+                        <input type="checkbox" 
+                               name="{{ form.is_active.name }}" 
+                               id="{{ form.is_active.id_for_label }}" 
+                               class="form-check-input {% if form.is_active.errors %}is-invalid{% endif %}" 
+                               {% if form.is_active.value %}checked{% endif %}>
+                        <label for="{{ form.is_active.id_for_label }}" class="form-check-label">Active</label>
+                        {% if form.is_active.errors %}
+                            <div class="invalid-feedback">
+                                {% for error in form.is_active.errors %}
+                                    {{ error }}
+                                {% endfor %}
+                            </div>
+                        {% endif %}
+                        <small class="form-text text-muted d-block">Indicates if this network address is currently in use</small>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="{{ form.valid_from.id_for_label }}" class="form-label">Valid From</label>
+                        <input type="datetime-local" 
+                               name="{{ form.valid_from.name }}" 
+                               id="{{ form.valid_from.id_for_label }}" 
+                               class="form-control {% if form.valid_from.errors %}is-invalid{% endif %}" 
+                               value="{{ form.valid_from.value|date:'Y-m-d\TH:i' }}" 
+                               required>
+                        {% if form.valid_from.errors %}
+                            <div class="invalid-feedback">
+                                {% for error in form.valid_from.errors %}
+                                    {{ error }}
+                                {% endfor %}
+                            </div>
+                        {% endif %}
+                        <small class="form-text text-muted">When this network address becomes valid</small>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="{{ form.valid_to.id_for_label }}" class="form-label">Valid To (Optional)</label>
+                        <input type="datetime-local" 
+                               name="{{ form.valid_to.name }}" 
+                               id="{{ form.valid_to.id_for_label }}" 
+                               class="form-control {% if form.valid_to.errors %}is-invalid{% endif %}" 
+                               value="{% if form.valid_to.value %}{{ form.valid_to.value|date:'Y-m-d\TH:i' }}{% endif %}">
+                        {% if form.valid_to.errors %}
+                            <div class="invalid-feedback">
+                                {% for error in form.valid_to.errors %}
+                                    {{ error }}
+                                {% endfor %}
+                            </div>
+                        {% endif %}
+                        <small class="form-text text-muted">Leave blank if no expiration date</small>
+                    </div>
+                    
+                    <div class="d-flex justify-content-between">
+                        <a href="{% url 'asset_network_address_list' %}" class="btn btn-secondary">
+                            <i class="fas fa-times me-1"></i>Cancel
+                        </a>
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-save me-1"></i>
+                            {% if address %}Update{% else %}Create{% endif %} Network Address
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">
+                    <i class="fas fa-info-circle me-2"></i>Help
+                </h5>
+            </div>
+            <div class="card-body">
+                <p>Network addresses are used to identify assets on a network:</p>
+                <ul>
+                    <li><strong>IP Address:</strong> Identifies a device on a network (e.g., 192.168.1.1)</li>
+                    <li><strong>MAC Address:</strong> Identifies a network interface (e.g., 00:1A:2B:3C:4D:5E)</li>
+                </ul>
+                
+                <div class="alert alert-info mt-3">
+                    <i class="fas fa-lightbulb me-2"></i>
+                    <strong>Format Guidelines:</strong>
+                    <ul class="mb-0">
+                        <li>IP Address: xxx.xxx.xxx.xxx (e.g., 192.168.1.1)</li>
+                        <li>MAC Address: XX:XX:XX:XX:XX:XX (e.g., 00:1A:2B:3C:4D:5E)</li>
+                    </ul>
+                </div>
+                
+                <p class="mb-0">Each asset can have multiple network addresses of different types.</p>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const form = document.querySelector('form');
+        const addressTypeSelect = document.getElementById('{{ form.address_type.id_for_label }}');
+        const addressValueInput = document.getElementById('{{ form.address_value.id_for_label }}');
+        const ipAddressHelp = document.getElementById('ip_address_help');
+        const macAddressHelp = document.getElementById('mac_address_help');
+        const defaultHelp = document.getElementById('default_help');
+        
+        // Function to update help text based on address type
+        function updateHelpText() {
+            const addressType = addressTypeSelect.value;
+            
+            // Hide all help texts
+            ipAddressHelp.classList.add('d-none');
+            macAddressHelp.classList.add('d-none');
+            defaultHelp.classList.add('d-none');
+            
+            // Show appropriate help text
+            if (addressType === 'IP_ADDRESS') {
+                ipAddressHelp.classList.remove('d-none');
+            } else if (addressType === 'MAC_ID') {
+                macAddressHelp.classList.remove('d-none');
+            } else {
+                defaultHelp.classList.remove('d-none');
+            }
+        }
+        
+        // Initial update based on current value
+        updateHelpText();
+        
+        // Update when address type changes
+        addressTypeSelect.addEventListener('change', updateHelpText);
+        
+        // Client-side form validation
+        form.addEventListener('submit', function(event) {
+            let isValid = true;
+            
+            // Validate asset (required)
+            const assetSelect = document.getElementById('{{ form.asset.id_for_label }}');
+            if (!assetSelect.value) {
+                assetSelect.classList.add('is-invalid');
+                if (!assetSelect.nextElementSibling || !assetSelect.nextElementSibling.classList.contains('invalid-feedback')) {
+                    const feedback = document.createElement('div');
+                    feedback.classList.add('invalid-feedback');
+                    feedback.textContent = 'Asset is required.';
+                    assetSelect.parentNode.insertBefore(feedback, assetSelect.nextSibling);
+                }
+                isValid = false;
+            }
+            
+            // Validate address type (required)
+            if (!addressTypeSelect.value) {
+                addressTypeSelect.classList.add('is-invalid');
+                if (!addressTypeSelect.nextElementSibling || !addressTypeSelect.nextElementSibling.classList.contains('invalid-feedback')) {
+                    const feedback = document.createElement('div');
+                    feedback.classList.add('invalid-feedback');
+                    feedback.textContent = 'Address type is required.';
+                    addressTypeSelect.parentNode.insertBefore(feedback, addressTypeSelect.nextSibling);
+                }
+                isValid = false;
+            }
+            
+            // Validate address value (required)
+            if (!addressValueInput.value.trim()) {
+                addressValueInput.classList.add('is-invalid');
+                if (!addressValueInput.nextElementSibling || !addressValueInput.nextElementSibling.classList.contains('invalid-feedback')) {
+                    const feedback = document.createElement('div');
+                    feedback.classList.add('invalid-feedback');
+                    feedback.textContent = 'Address value is required.';
+                    addressValueInput.parentNode.insertBefore(feedback, addressValueInput.nextSibling);
+                }
+                isValid = false;
+            } else {
+                // Validate IP address format
+                if (addressTypeSelect.value === 'IP_ADDRESS') {
+                    const ipPattern = /^(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})$/;
+                    const match = addressValueInput.value.match(ipPattern);
+                    
+                    if (!match) {
+                        addressValueInput.classList.add('is-invalid');
+                        if (!addressValueInput.nextElementSibling || !addressValueInput.nextElementSibling.classList.contains('invalid-feedback')) {
+                            const feedback = document.createElement('div');
+                            feedback.classList.add('invalid-feedback');
+                            feedback.textContent = 'Invalid IP address format. Use format: xxx.xxx.xxx.xxx';
+                            addressValueInput.parentNode.insertBefore(feedback, addressValueInput.nextSibling);
+                        }
+                        isValid = false;
+                    } else {
+                        // Check each octet is between 0-255
+                        for (let i = 1; i <= 4; i++) {
+                            const octet = parseInt(match[i]);
+                            if (octet < 0 || octet > 255) {
+                                addressValueInput.classList.add('is-invalid');
+                                if (!addressValueInput.nextElementSibling || !addressValueInput.nextElementSibling.classList.contains('invalid-feedback')) {
+                                    const feedback = document.createElement('div');
+                                    feedback.classList.add('invalid-feedback');
+                                    feedback.textContent = 'IP address segments must be between 0 and 255.';
+                                    addressValueInput.parentNode.insertBefore(feedback, addressValueInput.nextSibling);
+                                }
+                                isValid = false;
+                                break;
+                            }
+                        }
+                    }
+                }
+                
+                // Validate MAC address format
+                if (addressTypeSelect.value === 'MAC_ID') {
+                    // Normalize the MAC address (replace - or . with :)
+                    const normalizedMac = addressValueInput.value.replace(/[-\.]/g, ':');
+                    const macPattern = /^([0-9A-Fa-f]{2}[:]){5}([0-9A-Fa-f]{2})$/;
+                    
+                    if (!macPattern.test(normalizedMac)) {
+                        addressValueInput.classList.add('is-invalid');
+                        if (!addressValueInput.nextElementSibling || !addressValueInput.nextElementSibling.classList.contains('invalid-feedback')) {
+                            const feedback = document.createElement('div');
+                            feedback.classList.add('invalid-feedback');
+                            feedback.textContent = 'Invalid MAC address format. Use format: XX:XX:XX:XX:XX:XX';
+                            addressValueInput.parentNode.insertBefore(feedback, addressValueInput.nextSibling);
+                        }
+                        isValid = false;
+                    }
+                }
+            }
+            
+            // Validate valid_from (required)
+            const validFromInput = document.getElementById('{{ form.valid_from.id_for_label }}');
+            if (!validFromInput.value) {
+                validFromInput.classList.add('is-invalid');
+                if (!validFromInput.nextElementSibling || !validFromInput.nextElementSibling.classList.contains('invalid-feedback')) {
+                    const feedback = document.createElement('div');
+                    feedback.classList.add('invalid-feedback');
+                    feedback.textContent = 'Valid from date is required.';
+                    validFromInput.parentNode.insertBefore(feedback, validFromInput.nextSibling);
+                }
+                isValid = false;
+            }
+            
+            if (!isValid) {
+                event.preventDefault();
+            }
+        });
+        
+        // Format MAC address as user types
+        addressValueInput.addEventListener('input', function() {
+            if (addressTypeSelect.value === 'MAC_ID') {
+                // Remove all non-hex characters
+                let value = this.value.replace(/[^0-9A-Fa-f]/g, '');
+                
+                // Format with colons
+                if (value.length > 0) {
+                    let formattedValue = '';
+                    for (let i = 0; i < value.length; i++) {
+                        if (i > 0 && i % 2 === 0 && i < 12) {
+                            formattedValue += ':';
+                        }
+                        formattedValue += value[i];
+                    }
+                    this.value = formattedValue.substring(0, 17); // Limit to XX:XX:XX:XX:XX:XX
+                }
+            }
+        });
+        
+        // Remove validation errors when user types or selects
+        const inputs = form.querySelectorAll('input, select');
+        inputs.forEach(input => {
+            input.addEventListener('input', function() {
+                this.classList.remove('is-invalid');
+                const feedback = this.nextElementSibling;
+                if (feedback && feedback.classList.contains('invalid-feedback')) {
+                    feedback.textContent = '';
+                }
+            });
+            
+            if (input.tagName === 'SELECT') {
+                input.addEventListener('change', function() {
+                    this.classList.remove('is-invalid');
+                    const feedback = this.nextElementSibling;
+                    if (feedback && feedback.classList.contains('invalid-feedback')) {
+                        feedback.textContent = '';
+                    }
+                });
+            }
+        });
+    });
+</script>
+{% endblock %}

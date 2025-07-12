@@ -1,0 +1,258 @@
+{% extends "base.html" %}
+
+{% block title %}
+    {% if feature %}Edit Feature: {{ feature.feature_name }}{% else %}Create New Asset Feature{% endif %}
+{% endblock %}
+
+{% block page_title %}
+    {% if feature %}Edit Feature: {{ feature.feature_name }}{% else %}Create New Asset Feature{% endif %}
+{% endblock %}
+
+{% block breadcrumbs %}
+    <li class="breadcrumb-item"><a href="{% url 'asset_dashboard' %}">Home</a></li>
+    <li class="breadcrumb-item"><a href="{% url 'asset_feature_list' %}">Features</a></li>
+    <li class="breadcrumb-item active">
+        {% if feature %}Edit Feature{% else %}Create Feature{% endif %}
+    </li>
+{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">
+                    {% if feature %}
+                        <i class="fas fa-edit me-2"></i>Edit Feature
+                    {% else %}
+                        <i class="fas fa-plus-circle me-2"></i>Create New Feature
+                    {% endif %}
+                </h5>
+            </div>
+            <div class="card-body">
+                <form method="post" novalidate>
+                    {% csrf_token %}
+                    
+                    {% if form.non_field_errors %}
+                        <div class="alert alert-danger">
+                            {% for error in form.non_field_errors %}
+                                {{ error }}
+                            {% endfor %}
+                        </div>
+                    {% endif %}
+                    
+                    <div class="mb-3">
+                        <label for="{{ form.feature_type.id_for_label }}" class="form-label">Feature Type</label>
+                        <input type="text" 
+                               name="{{ form.feature_type.name }}" 
+                               id="{{ form.feature_type.id_for_label }}" 
+                               class="form-control {% if form.feature_type.errors %}is-invalid{% endif %}" 
+                               value="{{ form.feature_type.value|default:'' }}" 
+                               required>
+                        {% if form.feature_type.errors %}
+                            <div class="invalid-feedback">
+                                {% for error in form.feature_type.errors %}
+                                    {{ error }}
+                                {% endfor %}
+                            </div>
+                        {% endif %}
+                        <small class="form-text text-muted">Examples: RAM, PROCESSOR, HARDDISK, etc.</small>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="{{ form.feature_name.id_for_label }}" class="form-label">Feature Name</label>
+                        <input type="text" 
+                               name="{{ form.feature_name.name }}" 
+                               id="{{ form.feature_name.id_for_label }}" 
+                               class="form-control {% if form.feature_name.errors %}is-invalid{% endif %}" 
+                               value="{{ form.feature_name.value|default:'' }}" 
+                               required>
+                        {% if form.feature_name.errors %}
+                            <div class="invalid-feedback">
+                                {% for error in form.feature_name.errors %}
+                                    {{ error }}
+                                {% endfor %}
+                            </div>
+                        {% endif %}
+                        <small class="form-text text-muted">Specific value of the feature (e.g., "16GB", "Intel Core i7", "1TB SSD")</small>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="{{ form.feature_desc.id_for_label }}" class="form-label">Description</label>
+                        <textarea name="{{ form.feature_desc.name }}" 
+                                  id="{{ form.feature_desc.id_for_label }}" 
+                                  class="form-control {% if form.feature_desc.errors %}is-invalid{% endif %}" 
+                                  rows="3">{{ form.feature_desc.value|default:'' }}</textarea>
+                        {% if form.feature_desc.errors %}
+                            <div class="invalid-feedback">
+                                {% for error in form.feature_desc.errors %}
+                                    {{ error }}
+                                {% endfor %}
+                            </div>
+                        {% endif %}
+                        <small class="form-text text-muted">Optional detailed description of the feature</small>
+                    </div>
+                    
+                    <div class="mb-3 form-check">
+                        <input type="checkbox" 
+                               name="{{ form.is_active.name }}" 
+                               id="{{ form.is_active.id_for_label }}" 
+                               class="form-check-input {% if form.is_active.errors %}is-invalid{% endif %}" 
+                               {% if form.is_active.value %}checked{% endif %}>
+                        <label for="{{ form.is_active.id_for_label }}" class="form-check-label">Active</label>
+                        {% if form.is_active.errors %}
+                            <div class="invalid-feedback">
+                                {% for error in form.is_active.errors %}
+                                    {{ error }}
+                                {% endfor %}
+                            </div>
+                        {% endif %}
+                        <small class="form-text text-muted d-block">Indicates if this feature is currently in use</small>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="{{ form.valid_from.id_for_label }}" class="form-label">Valid From</label>
+                        <input type="datetime-local" 
+                               name="{{ form.valid_from.name }}" 
+                               id="{{ form.valid_from.id_for_label }}" 
+                               class="form-control {% if form.valid_from.errors %}is-invalid{% endif %}" 
+                               value="{{ form.valid_from.value|date:'Y-m-d\TH:i' }}" 
+                               required>
+                        {% if form.valid_from.errors %}
+                            <div class="invalid-feedback">
+                                {% for error in form.valid_from.errors %}
+                                    {{ error }}
+                                {% endfor %}
+                            </div>
+                        {% endif %}
+                        <small class="form-text text-muted">When this feature becomes valid</small>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="{{ form.valid_to.id_for_label }}" class="form-label">Valid To (Optional)</label>
+                        <input type="datetime-local" 
+                               name="{{ form.valid_to.name }}" 
+                               id="{{ form.valid_to.id_for_label }}" 
+                               class="form-control {% if form.valid_to.errors %}is-invalid{% endif %}" 
+                               value="{% if form.valid_to.value %}{{ form.valid_to.value|date:'Y-m-d\TH:i' }}{% endif %}">
+                        {% if form.valid_to.errors %}
+                            <div class="invalid-feedback">
+                                {% for error in form.valid_to.errors %}
+                                    {{ error }}
+                                {% endfor %}
+                            </div>
+                        {% endif %}
+                        <small class="form-text text-muted">Leave blank if no expiration date</small>
+                    </div>
+                    
+                    <div class="d-flex justify-content-between">
+                        <a href="{% url 'asset_feature_list' %}" class="btn btn-secondary">
+                            <i class="fas fa-times me-1"></i>Cancel
+                        </a>
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-save me-1"></i>
+                            {% if feature %}Update{% else %}Create{% endif %} Feature
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">
+                    <i class="fas fa-info-circle me-2"></i>Help
+                </h5>
+            </div>
+            <div class="card-body">
+                <p>Asset features represent specific characteristics or specifications of assets.</p>
+                <ul>
+                    <li><strong>Feature Type:</strong> The category of the feature (e.g., RAM, PROCESSOR)</li>
+                    <li><strong>Feature Name:</strong> The specific value or model (e.g., 16GB, Intel Core i7)</li>
+                    <li><strong>Description:</strong> Additional details about the feature</li>
+                    <li><strong>Active:</strong> Whether this feature is currently in use</li>
+                    <li><strong>Valid From:</strong> When this feature becomes valid</li>
+                    <li><strong>Valid To:</strong> When this feature expires (optional)</li>
+                </ul>
+                <p class="mb-0">Common feature types include:</p>
+                <ul class="mb-0">
+                    <li>RAM (e.g., 8GB, 16GB, 32GB)</li>
+                    <li>PROCESSOR (e.g., Intel Core i5, AMD Ryzen 7)</li>
+                    <li>HARDDISK (e.g., 500GB SSD, 2TB HDD)</li>
+                    <li>GRAPHICS (e.g., NVIDIA RTX 3060, AMD Radeon)</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // Client-side form validation
+    document.addEventListener('DOMContentLoaded', function() {
+        const form = document.querySelector('form');
+        
+        form.addEventListener('submit', function(event) {
+            let isValid = true;
+            
+            // Validate feature type (required)
+            const featureTypeInput = document.getElementById('{{ form.feature_type.id_for_label }}');
+            if (!featureTypeInput.value.trim()) {
+                featureTypeInput.classList.add('is-invalid');
+                if (!featureTypeInput.nextElementSibling || !featureTypeInput.nextElementSibling.classList.contains('invalid-feedback')) {
+                    const feedback = document.createElement('div');
+                    feedback.classList.add('invalid-feedback');
+                    feedback.textContent = 'Feature type is required.';
+                    featureTypeInput.parentNode.insertBefore(feedback, featureTypeInput.nextSibling);
+                }
+                isValid = false;
+            }
+            
+            // Validate feature name (required)
+            const featureNameInput = document.getElementById('{{ form.feature_name.id_for_label }}');
+            if (!featureNameInput.value.trim()) {
+                featureNameInput.classList.add('is-invalid');
+                if (!featureNameInput.nextElementSibling || !featureNameInput.nextElementSibling.classList.contains('invalid-feedback')) {
+                    const feedback = document.createElement('div');
+                    feedback.classList.add('invalid-feedback');
+                    feedback.textContent = 'Feature name is required.';
+                    featureNameInput.parentNode.insertBefore(feedback, featureNameInput.nextSibling);
+                }
+                isValid = false;
+            }
+            
+            // Validate valid_from (required)
+            const validFromInput = document.getElementById('{{ form.valid_from.id_for_label }}');
+            if (!validFromInput.value) {
+                validFromInput.classList.add('is-invalid');
+                if (!validFromInput.nextElementSibling || !validFromInput.nextElementSibling.classList.contains('invalid-feedback')) {
+                    const feedback = document.createElement('div');
+                    feedback.classList.add('invalid-feedback');
+                    feedback.textContent = 'Valid from date is required.';
+                    validFromInput.parentNode.insertBefore(feedback, validFromInput.nextSibling);
+                }
+                isValid = false;
+            }
+            
+            if (!isValid) {
+                event.preventDefault();
+            }
+        });
+        
+        // Remove validation errors when user types
+        const inputs = form.querySelectorAll('input, textarea');
+        inputs.forEach(input => {
+            input.addEventListener('input', function() {
+                this.classList.remove('is-invalid');
+                const feedback = this.nextElementSibling;
+                if (feedback && feedback.classList.contains('invalid-feedback')) {
+                    feedback.textContent = '';
+                }
+            });
+        });
+    });
+</script>
+{% endblock %}

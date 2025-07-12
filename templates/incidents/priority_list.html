@@ -1,0 +1,220 @@
+{% extends "base.html" %}
+
+{% block title %}Incident Priorities{% endblock %}
+
+{% block page_title %}Incident Priorities{% endblock %}
+
+{% block breadcrumbs %}
+    <li class="breadcrumb-item"><a href="{% url 'asset_dashboard' %}">Home</a></li>
+    <li class="breadcrumb-item"><a href="{% url 'incident_dashboard' %}">Incidents</a></li>
+    <li class="breadcrumb-item active">Priorities</li>
+{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col">
+        <div class="card">
+            <div class="card-header">
+                <div class="d-flex justify-content-between align-items-center">
+                    <h5 class="card-title mb-0">
+                        <i class="fas fa-exclamation-circle me-2"></i>Incident Priorities
+                    </h5>
+                    <a href="{% url 'incident_priority_create' %}" class="btn btn-primary">
+                        <i class="fas fa-plus-circle me-1"></i>Add Priority
+                    </a>
+                </div>
+            </div>
+            <div class="card-body">
+                <!-- Filter Form -->
+                <form method="get" class="mb-4">
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <div class="input-group">
+                                <input type="text" name="search" class="form-control" placeholder="Search priorities..." value="{{ search_term }}">
+                                <button class="btn btn-outline-secondary" type="submit">
+                                    <i class="fas fa-search"></i>
+                                </button>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <select name="sort" class="form-select">
+                                <option value="severity" {% if sort == 'severity' %}selected{% endif %}>Sort by Severity (Low to High)</option>
+                                <option value="-severity" {% if sort == '-severity' %}selected{% endif %}>Sort by Severity (High to Low)</option>
+                                <option value="name" {% if sort == 'name' %}selected{% endif %}>Sort by Name</option>
+                                <option value="-name" {% if sort == '-name' %}selected{% endif %}>Sort by Name (Desc)</option>
+                                <option value="created_at" {% if sort == 'created_at' %}selected{% endif %}>Sort by Created Date</option>
+                                <option value="-created_at" {% if sort == '-created_at' %}selected{% endif %}>Sort by Created Date (Desc)</option>
+                            </select>
+                        </div>
+                        <div class="col-md-2">
+                            <div class="d-grid">
+                                <button type="submit" class="btn btn-primary">Filter</button>
+                            </div>
+                        </div>
+                    </div>
+                </form>
+
+                {% if priorities %}
+                    <div class="table-responsive">
+                        <table class="table table-striped table-hover">
+                            <thead>
+                                <tr>
+                                    <th style="width: 80px">Severity</th>
+                                    <th style="width: 120px">Color</th>
+                                    <th>Priority Name</th>
+                                    <th>Description</th>
+                                    <th>Response Time</th>
+                                    <th>Incidents</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for priority in priorities %}
+                                <tr>
+                                    <td class="text-center">
+                                        <span class="badge bg-secondary">{{ priority.severity }}</span>
+                                    </td>
+                                    <td>
+                                        <div class="d-flex align-items-center">
+                                            <div class="color-preview me-2" style="width: 24px; height: 24px; border-radius: 4px; background-color: {{ priority.color }}"></div>
+                                            <span class="small text-muted">{{ priority.color }}</span>
+                                        </div>
+                                    </td>
+                                    <td>
+                                        <span class="badge px-3 py-2" style="background-color: {{ priority.color }}; color: {% if priority.is_dark_color %}#ffffff{% else %}#212529{% endif %}">
+                                            {{ priority.name }}
+                                        </span>
+                                    </td>
+                                    <td>{{ priority.description|truncatechars:50|default:"-" }}</td>
+                                    <td>
+                                        {% if priority.response_time %}
+                                            <span class="badge bg-info">{{ priority.response_time }}</span>
+                                        {% else %}
+                                            <span class="text-muted">-</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        <span class="badge bg-info">{{ priority.incident_set.count }}</span>
+                                    </td>
+                                    <td>
+                                        <div class="btn-group btn-group-sm">
+                                            <a href="{% url 'incident_priority_update' priority.pk %}" class="btn btn-outline-primary" title="Edit">
+                                                <i class="fas fa-edit"></i>
+                                            </a>
+                                            <a href="{% url 'incident_priority_delete' priority.pk %}" class="btn btn-outline-danger" title="Delete">
+                                                <i class="fas fa-trash-alt"></i>
+                                            </a>
+                                        </div>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    
+                    <!-- Pagination -->
+                    {% include "components/pagination.html" with page_obj=page_obj %}
+                    
+                    <div class="mt-3">
+                        <p class="text-muted">Showing {{ priorities|length }} of {{ page_obj.paginator.count }} priorities</p>
+                    </div>
+                {% else %}
+                    <div class="alert alert-info">
+                        <i class="fas fa-info-circle me-2"></i>No priorities found matching your criteria.
+                        {% if search_term %}
+                            <a href="{% url 'incident_priority_list' %}" class="alert-link">Clear search</a>
+                        {% else %}
+                            <a href="{% url 'incident_priority_create' %}" class="alert-link">Create your first priority</a>
+                        {% endif %}
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">
+                    <i class="fas fa-info-circle me-2"></i>About Incident Priorities
+                </h5>
+            </div>
+            <div class="card-body">
+                <p>Incident priorities determine the urgency and impact level of incidents, helping teams allocate resources appropriately.</p>
+                <p>Key aspects of priorities:</p>
+                <ul>
+                    <li><strong>Severity</strong> - Numerical value indicating importance (higher = more severe)</li>
+                    <li><strong>Color</strong> - Visual indicator for quick identification</li>
+                    <li><strong>Response Time</strong> - Target time for initial response</li>
+                    <li><strong>Resolution Time</strong> - Target time for complete resolution</li>
+                </ul>
+                <div class="alert alert-info mt-3">
+                    <i class="fas fa-lightbulb me-2"></i>
+                    <strong>Tip:</strong> Define clear criteria for each priority level to ensure consistent assignment.
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">
+                    <i class="fas fa-lightbulb me-2"></i>Priority Best Practices
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="mb-3">
+                            <h6><i class="fas fa-palette text-danger me-2"></i>Color Coding</h6>
+                            <p class="small">Use intuitive colors: red for critical, orange/yellow for high, blue for medium, and green for low priorities.</p>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="mb-3">
+                            <h6><i class="fas fa-clock text-warning me-2"></i>Response Times</h6>
+                            <p class="small">Set realistic response times based on your team's capacity and the business impact.</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="mb-3">
+                            <h6><i class="fas fa-balance-scale text-info me-2"></i>Balanced Distribution</h6>
+                            <p class="small">Avoid priority inflation. Not everything can be "Critical" - reserve highest priorities for truly urgent issues.</p>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="mb-3">
+                            <h6><i class="fas fa-list-ol text-success me-2"></i>Limited Levels</h6>
+                            <p class="small">Limit priority levels to 4-5 distinct options to avoid confusion and ensure clear differentiation.</p>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="alert alert-warning mt-2">
+                    <i class="fas fa-exclamation-triangle me-2"></i>
+                    <strong>Important:</strong> Document clear criteria for each priority level to ensure consistent assignment across your organization.
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Auto-submit form when select fields change
+        const sortField = document.querySelector('select[name="sort"]');
+        if (sortField) {
+            sortField.addEventListener('change', function() {
+                this.form.submit();
+            });
+        }
+    });
+</script>
+{% endblock %}

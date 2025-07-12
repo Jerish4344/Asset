@@ -1,0 +1,309 @@
+{% extends "base.html" %}
+
+{% block title %}
+    {% if role %}Edit Role: {{ role.name }}{% else %}Create New Role{% endif %}
+{% endblock %}
+
+{% block page_title %}
+    {% if role %}Edit Role: {{ role.name }}{% else %}Create New Role{% endif %}
+{% endblock %}
+
+{% block breadcrumbs %}
+    <li class="breadcrumb-item"><a href="{% url 'asset_dashboard' %}">Home</a></li>
+    <li class="breadcrumb-item"><a href="{% url 'incident_dashboard' %}">Incidents</a></li>
+    <li class="breadcrumb-item"><a href="{% url 'role_list' %}">Roles</a></li>
+    <li class="breadcrumb-item active">
+        {% if role %}Edit Role{% else %}Create Role{% endif %}
+    </li>
+{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">
+                    {% if role %}
+                        <i class="fas fa-edit me-2"></i>Edit Role
+                    {% else %}
+                        <i class="fas fa-plus-circle me-2"></i>Create New Role
+                    {% endif %}
+                </h5>
+            </div>
+            <div class="card-body">
+                <form method="post" novalidate>
+                    {% csrf_token %}
+                    
+                    {% if form.non_field_errors %}
+                        <div class="alert alert-danger">
+                            {% for error in form.non_field_errors %}
+                                {{ error }}
+                            {% endfor %}
+                        </div>
+                    {% endif %}
+                    
+                    <div class="mb-3">
+                        <label for="{{ form.name.id_for_label }}" class="form-label">Role Name</label>
+                        <input type="text" 
+                               name="{{ form.name.name }}" 
+                               id="{{ form.name.id_for_label }}" 
+                               class="form-control {% if form.name.errors %}is-invalid{% endif %}" 
+                               value="{{ form.name.value|default:'' }}" 
+                               required>
+                        {% if form.name.errors %}
+                            <div class="invalid-feedback">
+                                {% for error in form.name.errors %}
+                                    {{ error }}
+                                {% endfor %}
+                            </div>
+                        {% endif %}
+                        <small class="form-text text-muted">A unique name for this role (e.g., "Incident Manager", "Support Technician")</small>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="{{ form.description.id_for_label }}" class="form-label">Description</label>
+                        <textarea name="{{ form.description.name }}" 
+                                  id="{{ form.description.id_for_label }}" 
+                                  class="form-control {% if form.description.errors %}is-invalid{% endif %}" 
+                                  rows="3">{{ form.description.value|default:'' }}</textarea>
+                        {% if form.description.errors %}
+                            <div class="invalid-feedback">
+                                {% for error in form.description.errors %}
+                                    {{ error }}
+                                {% endfor %}
+                            </div>
+                        {% endif %}
+                        <small class="form-text text-muted">A brief description of this role and its responsibilities</small>
+                    </div>
+                    
+                    <div class="card mb-3">
+                        <div class="card-header bg-light">
+                            <h6 class="mb-0">Role Permissions</h6>
+                        </div>
+                        <div class="card-body">
+                            <p class="text-muted mb-3">Select the permissions this role should have:</p>
+                            
+                            <div class="mb-2 form-check">
+                                <input type="checkbox" 
+                                       name="{{ form.can_view_incidents.name }}" 
+                                       id="{{ form.can_view_incidents.id_for_label }}" 
+                                       class="form-check-input {% if form.can_view_incidents.errors %}is-invalid{% endif %}" 
+                                       {% if form.can_view_incidents.value %}checked{% endif %}>
+                                <label for="{{ form.can_view_incidents.id_for_label }}" class="form-check-label">
+                                    <strong>View Incidents</strong> - Can view incident details and history
+                                </label>
+                                {% if form.can_view_incidents.errors %}
+                                    <div class="invalid-feedback">
+                                        {% for error in form.can_view_incidents.errors %}
+                                            {{ error }}
+                                        {% endfor %}
+                                    </div>
+                                {% endif %}
+                            </div>
+                            
+                            <div class="mb-2 form-check">
+                                <input type="checkbox" 
+                                       name="{{ form.can_create_incidents.name }}" 
+                                       id="{{ form.can_create_incidents.id_for_label }}" 
+                                       class="form-check-input {% if form.can_create_incidents.errors %}is-invalid{% endif %}" 
+                                       {% if form.can_create_incidents.value %}checked{% endif %}>
+                                <label for="{{ form.can_create_incidents.id_for_label }}" class="form-check-label">
+                                    <strong>Create Incidents</strong> - Can report new incidents
+                                </label>
+                                {% if form.can_create_incidents.errors %}
+                                    <div class="invalid-feedback">
+                                        {% for error in form.can_create_incidents.errors %}
+                                            {{ error }}
+                                        {% endfor %}
+                                    </div>
+                                {% endif %}
+                            </div>
+                            
+                            <div class="mb-2 form-check">
+                                <input type="checkbox" 
+                                       name="{{ form.can_update_incidents.name }}" 
+                                       id="{{ form.can_update_incidents.id_for_label }}" 
+                                       class="form-check-input {% if form.can_update_incidents.errors %}is-invalid{% endif %}" 
+                                       {% if form.can_update_incidents.value %}checked{% endif %}>
+                                <label for="{{ form.can_update_incidents.id_for_label }}" class="form-check-label">
+                                    <strong>Update Incidents</strong> - Can modify incident details and add comments
+                                </label>
+                                {% if form.can_update_incidents.errors %}
+                                    <div class="invalid-feedback">
+                                        {% for error in form.can_update_incidents.errors %}
+                                            {{ error }}
+                                        {% endfor %}
+                                    </div>
+                                {% endif %}
+                            </div>
+                            
+                            <div class="mb-2 form-check">
+                                <input type="checkbox" 
+                                       name="{{ form.can_assign_incidents.name }}" 
+                                       id="{{ form.can_assign_incidents.id_for_label }}" 
+                                       class="form-check-input {% if form.can_assign_incidents.errors %}is-invalid{% endif %}" 
+                                       {% if form.can_assign_incidents.value %}checked{% endif %}>
+                                <label for="{{ form.can_assign_incidents.id_for_label }}" class="form-check-label">
+                                    <strong>Assign Incidents</strong> - Can assign incidents to users
+                                </label>
+                                {% if form.can_assign_incidents.errors %}
+                                    <div class="invalid-feedback">
+                                        {% for error in form.can_assign_incidents.errors %}
+                                            {{ error }}
+                                        {% endfor %}
+                                    </div>
+                                {% endif %}
+                            </div>
+                            
+                            <div class="mb-2 form-check">
+                                <input type="checkbox" 
+                                       name="{{ form.can_close_incidents.name }}" 
+                                       id="{{ form.can_close_incidents.id_for_label }}" 
+                                       class="form-check-input {% if form.can_close_incidents.errors %}is-invalid{% endif %}" 
+                                       {% if form.can_close_incidents.value %}checked{% endif %}>
+                                <label for="{{ form.can_close_incidents.id_for_label }}" class="form-check-label">
+                                    <strong>Close Incidents</strong> - Can mark incidents as resolved or closed
+                                </label>
+                                {% if form.can_close_incidents.errors %}
+                                    <div class="invalid-feedback">
+                                        {% for error in form.can_close_incidents.errors %}
+                                            {{ error }}
+                                        {% endfor %}
+                                    </div>
+                                {% endif %}
+                            </div>
+                            
+                            <div class="mb-2 form-check">
+                                <input type="checkbox" 
+                                       name="{{ form.can_delete_incidents.name }}" 
+                                       id="{{ form.can_delete_incidents.id_for_label }}" 
+                                       class="form-check-input {% if form.can_delete_incidents.errors %}is-invalid{% endif %}" 
+                                       {% if form.can_delete_incidents.value %}checked{% endif %}>
+                                <label for="{{ form.can_delete_incidents.id_for_label }}" class="form-check-label">
+                                    <strong>Delete Incidents</strong> - Can permanently remove incidents from the system
+                                </label>
+                                {% if form.can_delete_incidents.errors %}
+                                    <div class="invalid-feedback">
+                                        {% for error in form.can_delete_incidents.errors %}
+                                            {{ error }}
+                                        {% endfor %}
+                                    </div>
+                                {% endif %}
+                            </div>
+                            
+                            <div class="mb-2 form-check">
+                                <input type="checkbox" 
+                                       name="{{ form.can_manage_roles.name }}" 
+                                       id="{{ form.can_manage_roles.id_for_label }}" 
+                                       class="form-check-input {% if form.can_manage_roles.errors %}is-invalid{% endif %}" 
+                                       {% if form.can_manage_roles.value %}checked{% endif %}>
+                                <label for="{{ form.can_manage_roles.id_for_label }}" class="form-check-label">
+                                    <strong>Manage Roles</strong> - Can create, edit, and delete roles and assign them to users
+                                </label>
+                                {% if form.can_manage_roles.errors %}
+                                    <div class="invalid-feedback">
+                                        {% for error in form.can_manage_roles.errors %}
+                                            {{ error }}
+                                        {% endfor %}
+                                    </div>
+                                {% endif %}
+                            </div>
+                            
+                            <div class="alert alert-warning mt-3">
+                                <i class="fas fa-exclamation-triangle me-2"></i>
+                                <strong>Warning:</strong> The "Manage Roles" permission should be granted carefully as it allows users to modify the permission system.
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="d-flex justify-content-between">
+                        <a href="{% url 'role_list' %}" class="btn btn-secondary">
+                            <i class="fas fa-times me-1"></i>Cancel
+                        </a>
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-save me-1"></i>
+                            {% if role %}Update{% else %}Create{% endif %} Role
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">
+                    <i class="fas fa-info-circle me-2"></i>About Roles
+                </h5>
+            </div>
+            <div class="card-body">
+                <p>Roles define what actions users can perform in the incident management system.</p>
+                <p>Each role can have different combinations of permissions:</p>
+                <ul>
+                    <li><strong>View Incidents:</strong> Basic permission to see incident information</li>
+                    <li><strong>Create Incidents:</strong> Ability to report new incidents</li>
+                    <li><strong>Update Incidents:</strong> Ability to modify incident details</li>
+                    <li><strong>Assign Incidents:</strong> Ability to assign incidents to other users</li>
+                    <li><strong>Close Incidents:</strong> Ability to resolve and close incidents</li>
+                    <li><strong>Delete Incidents:</strong> Ability to remove incidents from the system</li>
+                    <li><strong>Manage Roles:</strong> Administrative permission to manage the role system</li>
+                </ul>
+                <div class="alert alert-info mt-3">
+                    <i class="fas fa-lightbulb me-2"></i>
+                    <strong>Tip:</strong> Create roles that match your organization's structure and workflow. For example:
+                    <ul class="mb-0 mt-2">
+                        <li><strong>Viewer:</strong> View only</li>
+                        <li><strong>Reporter:</strong> View + Create</li>
+                        <li><strong>Technician:</strong> View + Update + Close</li>
+                        <li><strong>Manager:</strong> All permissions except Manage Roles</li>
+                        <li><strong>Administrator:</strong> All permissions</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const form = document.querySelector('form');
+        
+        // Client-side form validation
+        form.addEventListener('submit', function(event) {
+            let isValid = true;
+            
+            // Validate role name (required)
+            const nameInput = document.getElementById('{{ form.name.id_for_label }}');
+            if (!nameInput.value.trim()) {
+                nameInput.classList.add('is-invalid');
+                if (!nameInput.nextElementSibling || !nameInput.nextElementSibling.classList.contains('invalid-feedback')) {
+                    const feedback = document.createElement('div');
+                    feedback.classList.add('invalid-feedback');
+                    feedback.textContent = 'Role name is required.';
+                    nameInput.parentNode.insertBefore(feedback, nameInput.nextSibling);
+                }
+                isValid = false;
+            }
+            
+            if (!isValid) {
+                event.preventDefault();
+            }
+        });
+        
+        // Remove validation errors when user types
+        const inputs = form.querySelectorAll('input, textarea');
+        inputs.forEach(input => {
+            input.addEventListener('input', function() {
+                this.classList.remove('is-invalid');
+                const feedback = this.nextElementSibling;
+                if (feedback && feedback.classList.contains('invalid-feedback')) {
+                    feedback.textContent = '';
+                }
+            });
+        });
+    });
+</script>
+{% endblock %}

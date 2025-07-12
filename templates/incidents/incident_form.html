@@ -1,0 +1,750 @@
+{% extends "base.html" %}
+
+{% block title %}
+    {% if incident %}Edit Incident: {{ incident.title }}{% else %}Create New Incident{% endif %}
+{% endblock %}
+
+{% block page_title %}
+    {% if incident %}Edit Incident: {{ incident.title }}{% else %}Create New Incident{% endif %}
+{% endblock %}
+
+{% block breadcrumbs %}
+    <li class="breadcrumb-item"><a href="{% url 'asset_dashboard' %}">Home</a></li>
+    <li class="breadcrumb-item"><a href="{% url 'incident_dashboard' %}">Incidents</a></li>
+    <li class="breadcrumb-item"><a href="{% url 'incident_list' %}">All Incidents</a></li>
+    <li class="breadcrumb-item active">
+        {% if incident %}Edit Incident{% else %}Create Incident{% endif %}
+    </li>
+{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-lg-8">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">
+                    {% if incident %}
+                        <i class="fas fa-edit me-2"></i>Edit Incident
+                    {% else %}
+                        <i class="fas fa-plus-circle me-2"></i>Create New Incident
+                    {% endif %}
+                </h5>
+            </div>
+            <div class="card-body">
+                <form method="post" enctype="multipart/form-data" novalidate>
+                    {% csrf_token %}
+                    
+                    {% if form.non_field_errors %}
+                        <div class="alert alert-danger">
+                            {% for error in form.non_field_errors %}
+                                {{ error }}
+                            {% endfor %}
+                        </div>
+                    {% endif %}
+                    
+                    <!-- Basic Information -->
+                    <div class="mb-4">
+                        <h5 class="border-bottom pb-2">Basic Information</h5>
+                        
+                        <div class="mb-3">
+                            <label for="{{ form.title.id_for_label }}" class="form-label">Incident Title <span class="text-danger">*</span></label>
+                            <input type="text" 
+                                   name="{{ form.title.name }}" 
+                                   id="{{ form.title.id_for_label }}" 
+                                   class="form-control {% if form.title.errors %}is-invalid{% endif %}" 
+                                   value="{{ form.title.value|default:'' }}" 
+                                   placeholder="Brief, descriptive title of the incident"
+                                   required>
+                            {% if form.title.errors %}
+                                <div class="invalid-feedback">
+                                    {% for error in form.title.errors %}
+                                        {{ error }}
+                                    {% endfor %}
+                                </div>
+                            {% endif %}
+                            <small class="form-text text-muted">A clear, concise title helps in identifying the incident</small>
+                        </div>
+                        
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label for="{{ form.category.id_for_label }}" class="form-label">Category <span class="text-danger">*</span></label>
+                                <select name="{{ form.category.name }}" 
+                                        id="{{ form.category.id_for_label }}" 
+                                        class="form-select {% if form.category.errors %}is-invalid{% endif %}" 
+                                        required>
+                                    <option value="">Select Category</option>
+                                    {% for choice in form.category.field.queryset %}
+                                        <option value="{{ choice.pk }}" {% if form.category.value|stringformat:"s" == choice.pk|stringformat:"s" %}selected{% endif %}>
+                                            {{ choice.name }}
+                                        </option>
+                                    {% endfor %}
+                                </select>
+                                {% if form.category.errors %}
+                                    <div class="invalid-feedback">
+                                        {% for error in form.category.errors %}
+                                            {{ error }}
+                                        {% endfor %}
+                                    </div>
+                                {% endif %}
+                                <small class="form-text text-muted">Type of incident (e.g., Hardware Failure, Security Breach)</small>
+                            </div>
+                            
+                            <div class="col-md-6 mb-3">
+                                <label for="{{ form.priority.id_for_label }}" class="form-label">Priority <span class="text-danger">*</span></label>
+                                <select name="{{ form.priority.name }}" 
+                                        id="{{ form.priority.id_for_label }}" 
+                                        class="form-select {% if form.priority.errors %}is-invalid{% endif %}" 
+                                        required>
+                                    <option value="">Select Priority</option>
+                                    {% for choice in form.priority.field.queryset %}
+                                        <option value="{{ choice.pk }}" {% if form.priority.value|stringformat:"s" == choice.pk|stringformat:"s" %}selected{% endif %}>
+                                            {{ choice.name }}
+                                        </option>
+                                    {% endfor %}
+                                </select>
+                                {% if form.priority.errors %}
+                                    <div class="invalid-feedback">
+                                        {% for error in form.priority.errors %}
+                                            {{ error }}
+                                        {% endfor %}
+                                    </div>
+                                {% endif %}
+                                <small class="form-text text-muted">Urgency level of this incident</small>
+                            </div>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="{{ form.description.id_for_label }}" class="form-label">Description <span class="text-danger">*</span></label>
+                            <textarea name="{{ form.description.name }}" 
+                                      id="{{ form.description.id_for_label }}" 
+                                      class="form-control {% if form.description.errors %}is-invalid{% endif %}" 
+                                      rows="5" 
+                                      placeholder="Detailed description of the incident"
+                                      required>{{ form.description.value|default:'' }}</textarea>
+                            {% if form.description.errors %}
+                                <div class="invalid-feedback">
+                                    {% for error in form.description.errors %}
+                                        {{ error }}
+                                    {% endfor %}
+                                </div>
+                            {% endif %}
+                            <small class="form-text text-muted">Provide as much detail as possible about what happened</small>
+                        </div>
+                    </div>
+                    
+                    <!-- Status and Assignment -->
+                    <div class="mb-4">
+                        <h5 class="border-bottom pb-2">Status and Assignment</h5>
+                        
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label for="{{ form.status.id_for_label }}" class="form-label">Status <span class="text-danger">*</span></label>
+                                <select name="{{ form.status.name }}" 
+                                        id="{{ form.status.id_for_label }}" 
+                                        class="form-select {% if form.status.errors %}is-invalid{% endif %}" 
+                                        required>
+                                    <option value="">Select Status</option>
+                                    {% for choice in form.status.field.queryset %}
+                                        <option value="{{ choice.pk }}" 
+                                                {% if form.status.value|stringformat:"s" == choice.pk|stringformat:"s" %}selected{% endif %}
+                                                style="background-color: {{ choice.color }}; color: {% if choice.is_dark_color %}#ffffff{% else %}#212529{% endif %}">
+                                            {{ choice.name }}
+                                        </option>
+                                    {% endfor %}
+                                </select>
+                                {% if form.status.errors %}
+                                    <div class="invalid-feedback">
+                                        {% for error in form.status.errors %}
+                                            {{ error }}
+                                        {% endfor %}
+                                    </div>
+                                {% endif %}
+                                <small class="form-text text-muted">Current status of the incident</small>
+                            </div>
+                            
+                            <div class="col-md-6 mb-3">
+                                <label for="{{ form.assigned_to.id_for_label }}" class="form-label">Assigned To</label>
+                                <select name="{{ form.assigned_to.name }}" 
+                                        id="{{ form.assigned_to.id_for_label }}" 
+                                        class="form-select {% if form.assigned_to.errors %}is-invalid{% endif %}">
+                                    <option value="">Not Assigned</option>
+                                    {% for choice in form.assigned_to.field.queryset %}
+                                        <option value="{{ choice.pk }}" {% if form.assigned_to.value|stringformat:"s" == choice.pk|stringformat:"s" %}selected{% endif %}>
+                                            {{ choice.get_full_name|default:choice.username }}
+                                        </option>
+                                    {% endfor %}
+                                </select>
+                                {% if form.assigned_to.errors %}
+                                    <div class="invalid-feedback">
+                                        {% for error in form.assigned_to.errors %}
+                                            {{ error }}
+                                        {% endfor %}
+                                    </div>
+                                {% endif %}
+                                <small class="form-text text-muted">User responsible for handling this incident</small>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Dates -->
+                    <div class="mb-4">
+                        <h5 class="border-bottom pb-2">Dates</h5>
+                        
+                        <div class="row">
+                            <div class="col-md-4 mb-3">
+                                <label for="{{ form.occurred_at.id_for_label }}" class="form-label">Occurred At <span class="text-danger">*</span></label>
+                                <div class="input-group">
+                                    <input type="datetime-local" 
+                                           name="{{ form.occurred_at.name }}" 
+                                           id="{{ form.occurred_at.id_for_label }}" 
+                                           class="form-control {% if form.occurred_at.errors %}is-invalid{% endif %}" 
+                                           value="{{ form.occurred_at.value|date:'Y-m-d\TH:i'|default:'' }}" 
+                                           required>
+                                    <span class="input-group-text"><i class="fas fa-calendar-alt"></i></span>
+                                </div>
+                                {% if form.occurred_at.errors %}
+                                    <div class="invalid-feedback">
+                                        {% for error in form.occurred_at.errors %}
+                                            {{ error }}
+                                        {% endfor %}
+                                    </div>
+                                {% endif %}
+                                <small class="form-text text-muted">When the incident occurred</small>
+                            </div>
+                            
+                            <div class="col-md-4 mb-3">
+                                <label for="{{ form.discovered_at.id_for_label }}" class="form-label">Discovered At</label>
+                                <div class="input-group">
+                                    <input type="datetime-local" 
+                                           name="{{ form.discovered_at.name }}" 
+                                           id="{{ form.discovered_at.id_for_label }}" 
+                                           class="form-control {% if form.discovered_at.errors %}is-invalid{% endif %}" 
+                                           value="{{ form.discovered_at.value|date:'Y-m-d\TH:i'|default:'' }}">
+                                    <span class="input-group-text"><i class="fas fa-calendar-alt"></i></span>
+                                </div>
+                                {% if form.discovered_at.errors %}
+                                    <div class="invalid-feedback">
+                                        {% for error in form.discovered_at.errors %}
+                                            {{ error }}
+                                        {% endfor %}
+                                    </div>
+                                {% endif %}
+                                <small class="form-text text-muted">When the incident was discovered</small>
+                            </div>
+                            
+                            <div class="col-md-4 mb-3">
+                                <label for="{{ form.due_date.id_for_label }}" class="form-label">Due Date</label>
+                                <div class="input-group">
+                                    <input type="datetime-local" 
+                                           name="{{ form.due_date.name }}" 
+                                           id="{{ form.due_date.id_for_label }}" 
+                                           class="form-control {% if form.due_date.errors %}is-invalid{% endif %}" 
+                                           value="{{ form.due_date.value|date:'Y-m-d\TH:i'|default:'' }}">
+                                    <span class="input-group-text"><i class="fas fa-calendar-alt"></i></span>
+                                </div>
+                                {% if form.due_date.errors %}
+                                    <div class="invalid-feedback">
+                                        {% for error in form.due_date.errors %}
+                                            {{ error }}
+                                        {% endfor %}
+                                    </div>
+                                {% endif %}
+                                <small class="form-text text-muted">Target date for resolution</small>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Affected Assets -->
+                    <div class="mb-4">
+                        <h5 class="border-bottom pb-2">Affected Assets</h5>
+                        
+                        <div class="mb-3">
+                            <label for="{{ form.affected_assets.id_for_label }}" class="form-label">Affected Assets</label>
+                            <select name="{{ form.affected_assets.name }}" 
+                                    id="{{ form.affected_assets.id_for_label }}" 
+                                    class="form-select {% if form.affected_assets.errors %}is-invalid{% endif %}" 
+                                    multiple
+                                    size="5">
+                                {% for choice in form.affected_assets.field.queryset %}
+                                    <option value="{{ choice.pk }}"
+                                        {% if form.affected_assets.value and choice.pk|stringformat:"s" in form.affected_assets.value %}selected{% endif %}>
+                                        {{ choice.asset_name }} ({{ choice.category.category_name }})
+                                    </option>
+                                {% endfor %}
+                            </select>
+                            {% if form.affected_assets.errors %}
+                                <div class="invalid-feedback">
+                                    {% for error in form.affected_assets.errors %}
+                                        {{ error }}
+                                    {% endfor %}
+                                </div>
+                            {% endif %}
+                            <small class="form-text text-muted">Hold Ctrl/Cmd to select multiple assets</small>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="{{ form.impact_description.id_for_label }}" class="form-label">Impact Description</label>
+                            <textarea name="{{ form.impact_description.name }}" 
+                                      id="{{ form.impact_description.id_for_label }}" 
+                                      class="form-control {% if form.impact_description.errors %}is-invalid{% endif %}" 
+                                      rows="3" 
+                                      placeholder="Describe how this incident impacts operations">{{ form.impact_description.value|default:'' }}</textarea>
+                            {% if form.impact_description.errors %}
+                                <div class="invalid-feedback">
+                                    {% for error in form.impact_description.errors %}
+                                        {{ error }}
+                                    {% endfor %}
+                                </div>
+                            {% endif %}
+                            <small class="form-text text-muted">Describe the business impact of this incident</small>
+                        </div>
+                    </div>
+                    
+                    <!-- Resolution Details -->
+                    <div class="mb-4">
+                        <h5 class="border-bottom pb-2">Resolution Details</h5>
+                        
+                        <div class="mb-3">
+                            <label for="{{ form.resolution.id_for_label }}" class="form-label">Resolution</label>
+                            <textarea name="{{ form.resolution.name }}" 
+                                      id="{{ form.resolution.id_for_label }}" 
+                                      class="form-control {% if form.resolution.errors %}is-invalid{% endif %}" 
+                                      rows="4" 
+                                      placeholder="Details about how the incident was resolved">{{ form.resolution.value|default:'' }}</textarea>
+                            {% if form.resolution.errors %}
+                                <div class="invalid-feedback">
+                                    {% for error in form.resolution.errors %}
+                                        {{ error }}
+                                    {% endfor %}
+                                </div>
+                            {% endif %}
+                            <small class="form-text text-muted">Describe the steps taken to resolve the incident</small>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="{{ form.root_cause.id_for_label }}" class="form-label">Root Cause</label>
+                            <textarea name="{{ form.root_cause.name }}" 
+                                      id="{{ form.root_cause.id_for_label }}" 
+                                      class="form-control {% if form.root_cause.errors %}is-invalid{% endif %}" 
+                                      rows="3" 
+                                      placeholder="Underlying cause of the incident">{{ form.root_cause.value|default:'' }}</textarea>
+                            {% if form.root_cause.errors %}
+                                <div class="invalid-feedback">
+                                    {% for error in form.root_cause.errors %}
+                                        {{ error }}
+                                    {% endfor %}
+                                </div>
+                            {% endif %}
+                            <small class="form-text text-muted">Identify what caused the incident to occur</small>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="{{ form.prevention_steps.id_for_label }}" class="form-label">Prevention Steps</label>
+                            <textarea name="{{ form.prevention_steps.name }}" 
+                                      id="{{ form.prevention_steps.id_for_label }}" 
+                                      class="form-control {% if form.prevention_steps.errors %}is-invalid{% endif %}" 
+                                      rows="3" 
+                                      placeholder="Steps to prevent recurrence">{{ form.prevention_steps.value|default:'' }}</textarea>
+                            {% if form.prevention_steps.errors %}
+                                <div class="invalid-feedback">
+                                    {% for error in form.prevention_steps.errors %}
+                                        {{ error }}
+                                    {% endfor %}
+                                </div>
+                            {% endif %}
+                            <small class="form-text text-muted">Describe actions to prevent similar incidents in the future</small>
+                        </div>
+                    </div>
+                    
+                    <!-- Additional Information -->
+                    <div class="mb-4">
+                        <h5 class="border-bottom pb-2">Additional Information</h5>
+                        
+                        <div class="mb-3">
+                            <label for="{{ form.attachments.id_for_label }}" class="form-label">Attachments</label>
+                            <input type="file" 
+                                   name="{{ form.attachments.name }}" 
+                                   id="{{ form.attachments.id_for_label }}" 
+                                   class="form-control {% if form.attachments.errors %}is-invalid{% endif %}" 
+                                   multiple>
+                            {% if form.attachments.errors %}
+                                <div class="invalid-feedback">
+                                    {% for error in form.attachments.errors %}
+                                        {{ error }}
+                                    {% endfor %}
+                                </div>
+                            {% endif %}
+                            <small class="form-text text-muted">Upload screenshots, logs, or other relevant files (max 10MB per file)</small>
+                        </div>
+                        
+                        {% if incident.attachments.all %}
+                            <div class="mb-3">
+                                <label class="form-label">Current Attachments</label>
+                                <div class="list-group">
+                                    {% for attachment in incident.attachments.all %}
+                                        <div class="list-group-item list-group-item-action d-flex justify-content-between align-items-center">
+                                            <div>
+                                                <i class="fas fa-file me-2"></i>
+                                                <a href="{{ attachment.file.url }}" target="_blank">{{ attachment.file.name|cut:"incident_attachments/"|truncatechars:40 }}</a>
+                                                <small class="text-muted ms-2">{{ attachment.file.size|filesizeformat }}</small>
+                                            </div>
+                                            <div class="form-check">
+                                                <input type="checkbox" name="delete_attachment_{{ attachment.id }}" id="delete_attachment_{{ attachment.id }}" class="form-check-input">
+                                                <label for="delete_attachment_{{ attachment.id }}" class="form-check-label text-danger">Delete</label>
+                                            </div>
+                                        </div>
+                                    {% endfor %}
+                                </div>
+                                <small class="form-text text-muted">Check the box to delete an attachment</small>
+                            </div>
+                        {% endif %}
+                        
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label for="{{ form.reported_by_name.id_for_label }}" class="form-label">Reported By</label>
+                                <input type="text" 
+                                       name="{{ form.reported_by_name.name }}" 
+                                       id="{{ form.reported_by_name.id_for_label }}" 
+                                       class="form-control {% if form.reported_by_name.errors %}is-invalid{% endif %}" 
+                                       value="{{ form.reported_by_name.value|default:'' }}" 
+                                       placeholder="Name of the person who reported this incident">
+                                {% if form.reported_by_name.errors %}
+                                    <div class="invalid-feedback">
+                                        {% for error in form.reported_by_name.errors %}
+                                            {{ error }}
+                                        {% endfor %}
+                                    </div>
+                                {% endif %}
+                                <small class="form-text text-muted">If different from the creator</small>
+                            </div>
+                            
+                            <div class="col-md-6 mb-3">
+                                <label for="{{ form.reported_by_email.id_for_label }}" class="form-label">Reporter's Email</label>
+                                <input type="email" 
+                                       name="{{ form.reported_by_email.name }}" 
+                                       id="{{ form.reported_by_email.id_for_label }}" 
+                                       class="form-control {% if form.reported_by_email.errors %}is-invalid{% endif %}" 
+                                       value="{{ form.reported_by_email.value|default:'' }}" 
+                                       placeholder="Email address of the reporter">
+                                {% if form.reported_by_email.errors %}
+                                    <div class="invalid-feedback">
+                                        {% for error in form.reported_by_email.errors %}
+                                            {{ error }}
+                                        {% endfor %}
+                                    </div>
+                                {% endif %}
+                                <small class="form-text text-muted">Contact email for follow-up questions</small>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="d-flex justify-content-between">
+                        <a href="{% url 'incident_list' %}" class="btn btn-secondary">
+                            <i class="fas fa-times me-1"></i>Cancel
+                        </a>
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-save me-1"></i>
+                            {% if incident %}Update{% else %}Create{% endif %} Incident
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-lg-4">
+        <!-- Form Instructions Card -->
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="card-title mb-0">
+                    <i class="fas fa-info-circle me-2"></i>Instructions
+                </h5>
+            </div>
+            <div class="card-body">
+                <p>Please provide as much information as possible about the incident to help in resolution.</p>
+                <h6 class="mt-3">Required Fields:</h6>
+                <ul>
+                    <li><strong>Title</strong> - Brief description of the incident</li>
+                    <li><strong>Category</strong> - Type of incident</li>
+                    <li><strong>Priority</strong> - Urgency level</li>
+                    <li><strong>Status</strong> - Current state of the incident</li>
+                    <li><strong>Description</strong> - Detailed information about what happened</li>
+                    <li><strong>Occurred At</strong> - When the incident took place</li>
+                </ul>
+                <div class="alert alert-info mt-3">
+                    <i class="fas fa-lightbulb me-2"></i>
+                    <strong>Tip:</strong> The more detailed your information, the faster the incident can be addressed.
+                </div>
+            </div>
+        </div>
+        
+        {% if incident %}
+        <!-- Incident History Card -->
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="card-title mb-0">
+                    <i class="fas fa-history me-2"></i>Incident History
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="timeline">
+                    {% for history in incident.history.all|slice:":5" %}
+                        <div class="timeline-item">
+                            <div class="timeline-marker"></div>
+                            <div class="timeline-content">
+                                <h6 class="mb-1">{{ history.created_at|date:"Y-m-d H:i" }}</h6>
+                                <p class="mb-0 small">
+                                    <strong>{{ history.user.get_full_name|default:history.user.username }}</strong>
+                                    {{ history.action_type }}
+                                </p>
+                                {% if history.changes %}
+                                    <small class="text-muted">{{ history.changes }}</small>
+                                {% endif %}
+                            </div>
+                        </div>
+                    {% empty %}
+                        <p class="text-muted">No history available</p>
+                    {% endfor %}
+                </div>
+                {% if incident.history.count > 5 %}
+                    <div class="text-center mt-3">
+                        <a href="{% url 'incident_history' incident.pk %}" class="btn btn-sm btn-outline-secondary">
+                            View Full History
+                        </a>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+        {% endif %}
+        
+        <!-- Workflow Card -->
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">
+                    <i class="fas fa-sitemap me-2"></i>Workflow Information
+                </h5>
+            </div>
+            <div class="card-body">
+                <p>Incidents follow a predefined workflow based on their category:</p>
+                
+                <div id="workflowInfo" class="alert alert-info">
+                    <p><i class="fas fa-info-circle me-2"></i>Select a category to see its workflow</p>
+                </div>
+                
+                <div id="workflowSteps" class="d-none">
+                    <h6 class="mb-2">Workflow Steps:</h6>
+                    <ol class="list-group list-group-numbered mb-3" id="stepsList">
+                    </ol>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const form = document.querySelector('form');
+        
+        // Client-side form validation
+        form.addEventListener('submit', function(event) {
+            let isValid = true;
+            
+            // Required fields validation
+            const requiredFields = [
+                { id: '{{ form.title.id_for_label }}', name: 'Title' },
+                { id: '{{ form.description.id_for_label }}', name: 'Description' },
+                { id: '{{ form.category.id_for_label }}', name: 'Category' },
+                { id: '{{ form.priority.id_for_label }}', name: 'Priority' },
+                { id: '{{ form.status.id_for_label }}', name: 'Status' },
+                { id: '{{ form.occurred_at.id_for_label }}', name: 'Occurrence Time' }
+            ];
+            
+            requiredFields.forEach(field => {
+                const element = document.getElementById(field.id);
+                if (!element.value.trim()) {
+                    element.classList.add('is-invalid');
+                    
+                    // Add feedback if it doesn't exist
+                    if (!element.nextElementSibling || !element.nextElementSibling.classList.contains('invalid-feedback')) {
+                        const feedback = document.createElement('div');
+                        feedback.classList.add('invalid-feedback');
+                        feedback.textContent = `${field.name} is required.`;
+                        element.parentNode.insertBefore(feedback, element.nextSibling);
+                    }
+                    
+                    isValid = false;
+                }
+            });
+            
+            // Email validation if provided
+            const emailField = document.getElementById('{{ form.reported_by_email.id_for_label }}');
+            if (emailField.value.trim() && !isValidEmail(emailField.value.trim())) {
+                emailField.classList.add('is-invalid');
+                if (!emailField.nextElementSibling || !emailField.nextElementSibling.classList.contains('invalid-feedback')) {
+                    const feedback = document.createElement('div');
+                    feedback.classList.add('invalid-feedback');
+                    feedback.textContent = 'Please enter a valid email address.';
+                    emailField.parentNode.insertBefore(feedback, emailField.nextSibling);
+                }
+                isValid = false;
+            }
+            
+            // File size validation
+            const attachmentField = document.getElementById('{{ form.attachments.id_for_label }}');
+            if (attachmentField.files.length > 0) {
+                for (let i = 0; i < attachmentField.files.length; i++) {
+                    if (attachmentField.files[i].size > 10 * 1024 * 1024) { // 10MB
+                        attachmentField.classList.add('is-invalid');
+                        if (!attachmentField.nextElementSibling || !attachmentField.nextElementSibling.classList.contains('invalid-feedback')) {
+                            const feedback = document.createElement('div');
+                            feedback.classList.add('invalid-feedback');
+                            feedback.textContent = 'File size must be less than 10MB.';
+                            attachmentField.parentNode.insertBefore(feedback, attachmentField.nextSibling);
+                        }
+                        isValid = false;
+                        break;
+                    }
+                }
+            }
+            
+            if (!isValid) {
+                event.preventDefault();
+            }
+        });
+        
+        // Remove validation errors when user types/selects
+        const inputs = form.querySelectorAll('input, textarea, select');
+        inputs.forEach(input => {
+            const eventType = input.tagName === 'SELECT' ? 'change' : 'input';
+            input.addEventListener(eventType, function() {
+                this.classList.remove('is-invalid');
+                const feedback = this.nextElementSibling;
+                if (feedback && feedback.classList.contains('invalid-feedback')) {
+                    feedback.textContent = '';
+                }
+            });
+        });
+        
+        // Helper function to validate email
+        function isValidEmail(email) {
+            const re = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
+            return re.test(email);
+        }
+        
+        // Set default values for date/time fields if empty
+        const occurredAtField = document.getElementById('{{ form.occurred_at.id_for_label }}');
+        if (!occurredAtField.value) {
+            const now = new Date();
+            const year = now.getFullYear();
+            const month = String(now.getMonth() + 1).padStart(2, '0');
+            const day = String(now.getDate()).padStart(2, '0');
+            const hours = String(now.getHours()).padStart(2, '0');
+            const minutes = String(now.getMinutes()).padStart(2, '0');
+            
+            occurredAtField.value = `${year}-${month}-${day}T${hours}:${minutes}`;
+        }
+        
+        // Workflow information based on category
+        const categorySelect = document.getElementById('{{ form.category.id_for_label }}');
+        const workflowInfo = document.getElementById('workflowInfo');
+        const workflowSteps = document.getElementById('workflowSteps');
+        const stepsList = document.getElementById('stepsList');
+        
+        // Sample workflow data - in production, this would come from an API call
+        const workflows = {
+            {% for category in form.category.field.queryset %}
+                "{{ category.pk }}": {
+                    "name": "{{ category.name }} Workflow",
+                    "steps": [
+                        {% if category.workflow_template %}
+                            {% for step in category.workflow_template.steps.all %}
+                                "{{ step.name }}",
+                            {% empty %}
+                                "Report", "Triage", "Investigate", "Resolve", "Close"
+                            {% endfor %}
+                        {% else %}
+                            "Report", "Triage", "Investigate", "Resolve", "Close"
+                        {% endif %}
+                    ]
+                },
+            {% endfor %}
+        };
+        
+        categorySelect.addEventListener('change', function() {
+            const categoryId = this.value;
+            
+            if (categoryId && workflows[categoryId]) {
+                const workflow = workflows[categoryId];
+                
+                // Update workflow info
+                workflowInfo.innerHTML = `
+                    <p><i class="fas fa-sitemap me-2"></i><strong>${workflow.name}</strong></p>
+                    <p class="mb-0 small">This incident will follow the workflow defined for this category.</p>
+                `;
+                
+                // Update steps list
+                stepsList.innerHTML = '';
+                workflow.steps.forEach(step => {
+                    const li = document.createElement('li');
+                    li.className = 'list-group-item';
+                    li.textContent = step;
+                    stepsList.appendChild(li);
+                });
+                
+                workflowSteps.classList.remove('d-none');
+            } else {
+                workflowInfo.innerHTML = '<p><i class="fas fa-info-circle me-2"></i>Select a category to see its workflow</p>';
+                workflowSteps.classList.add('d-none');
+            }
+        });
+        
+        // Trigger change event to initialize workflow display if category is already selected
+        if (categorySelect.value) {
+            categorySelect.dispatchEvent(new Event('change'));
+        }
+    });
+</script>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+    /* Timeline styling for incident history */
+    .timeline {
+        position: relative;
+        padding-left: 30px;
+    }
+    
+    .timeline:before {
+        content: '';
+        position: absolute;
+        left: 10px;
+        top: 0;
+        bottom: 0;
+        width: 2px;
+        background: #e9ecef;
+    }
+    
+    .timeline-item {
+        position: relative;
+        margin-bottom: 20px;
+    }
+    
+    .timeline-marker {
+        position: absolute;
+        left: -30px;
+        width: 12px;
+        height: 12px;
+        border-radius: 50%;
+        background: #007bff;
+        border: 2px solid #fff;
+        top: 5px;
+    }
+    
+    .timeline-content {
+        padding-bottom: 10px;
+        border-bottom: 1px dashed #e9ecef;
+    }
+</style>
+{% endblock %}

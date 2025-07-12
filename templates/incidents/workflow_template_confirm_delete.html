@@ -1,0 +1,152 @@
+{% extends "base.html" %}
+
+{% block title %}Delete Workflow Template: {{ workflow_template.name }}{% endblock %}
+
+{% block page_title %}Delete Workflow Template: {{ workflow_template.name }}{% endblock %}
+
+{% block breadcrumbs %}
+    <li class="breadcrumb-item"><a href="{% url 'asset_dashboard' %}">Home</a></li>
+    <li class="breadcrumb-item"><a href="{% url 'incident_dashboard' %}">Incidents</a></li>
+    <li class="breadcrumb-item"><a href="{% url 'workflow_template_list' %}">Workflow Templates</a></li>
+    <li class="breadcrumb-item"><a href="{% url 'workflow_template_detail' workflow_template.pk %}">{{ workflow_template.name }}</a></li>
+    <li class="breadcrumb-item active">Delete</li>
+{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-md-8">
+        <div class="card border-danger">
+            <div class="card-header bg-danger text-white">
+                <h5 class="card-title mb-0">
+                    <i class="fas fa-exclamation-triangle me-2"></i>Confirm Workflow Template Deletion
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="alert alert-warning">
+                    <i class="fas fa-exclamation-circle me-2"></i>
+                    <strong>Warning:</strong> This action cannot be undone. The workflow template and all its steps will be permanently removed.
+                </div>
+                
+                <p>Are you sure you want to delete the following workflow template?</p>
+                
+                <table class="table table-bordered">
+                    <tbody>
+                        <tr>
+                            <th style="width: 30%">Template Name</th>
+                            <td>{{ workflow_template.name }}</td>
+                        </tr>
+                        <tr>
+                            <th>Description</th>
+                            <td>{{ workflow_template.description|default:"No description provided" }}</td>
+                        </tr>
+                        <tr>
+                            <th>Status</th>
+                            <td>
+                                {% if workflow_template.is_active %}
+                                    <span class="badge bg-success">Active</span>
+                                {% else %}
+                                    <span class="badge bg-secondary">Inactive</span>
+                                {% endif %}
+                                
+                                {% if workflow_template.is_default %}
+                                    <span class="badge bg-primary ms-2">Default Template</span>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        <tr>
+                            <th>Created</th>
+                            <td>{{ workflow_template.created_at }}</td>
+                        </tr>
+                    </tbody>
+                </table>
+                
+                {% if workflow_template.steps.exists %}
+                <div class="alert alert-danger mt-3">
+                    <i class="fas fa-tasks me-2"></i>
+                    <strong>Steps to be deleted:</strong> The following {{ workflow_template.steps.count }} workflow step(s) will be permanently removed:
+                    <ol class="mb-0 mt-2">
+                        {% for step in workflow_template.steps.all %}
+                            <li>{{ step.name }} {% if step.requires_approval %}<span class="badge bg-warning text-dark">Requires Approval</span>{% endif %}</li>
+                        {% endfor %}
+                    </ol>
+                </div>
+                {% endif %}
+                
+                {% if workflow_template.categories.exists %}
+                <div class="alert alert-warning mt-3">
+                    <i class="fas fa-folder me-2"></i>
+                    <strong>Categories affected:</strong> The following {{ workflow_template.categories.count }} category(ies) will no longer use this workflow template:
+                    <ul class="mb-0 mt-2">
+                        {% for category in workflow_template.categories.all %}
+                            <li>{{ category.name }}</li>
+                        {% endfor %}
+                    </ul>
+                </div>
+                {% endif %}
+                
+                {% if workflow_template.is_default %}
+                <div class="alert alert-danger mt-3">
+                    <i class="fas fa-star me-2"></i>
+                    <strong>Default Template Warning:</strong> This is currently set as the default workflow template. Deleting it will require setting another template as the default.
+                </div>
+                {% endif %}
+                
+                {% if active_incidents_count %}
+                <div class="alert alert-danger mt-3">
+                    <i class="fas fa-exclamation-circle me-2"></i>
+                    <strong>Active Incidents:</strong> There are currently {{ active_incidents_count }} active incident(s) using this workflow template. Deleting the template will not affect these incidents, but may cause confusion for users.
+                </div>
+                {% endif %}
+                
+                <form method="post">
+                    {% csrf_token %}
+                    <div class="d-flex justify-content-between mt-4">
+                        <a href="{% url 'workflow_template_detail' workflow_template.pk %}" class="btn btn-secondary">
+                            <i class="fas fa-arrow-left me-1"></i>Cancel
+                        </a>
+                        <button type="submit" class="btn btn-danger">
+                            <i class="fas fa-trash-alt me-1"></i>Delete Workflow Template
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">
+                    <i class="fas fa-info-circle me-2"></i>Information
+                </h5>
+            </div>
+            <div class="card-body">
+                <p>Deleting this workflow template will:</p>
+                <ul>
+                    <li>Permanently remove the template definition</li>
+                    <li>Delete all steps defined in this workflow</li>
+                    <li>Remove associations with incident categories</li>
+                    <li>Remove it as the default template (if applicable)</li>
+                </ul>
+                
+                <div class="alert alert-info mt-3">
+                    <i class="fas fa-lightbulb me-2"></i>
+                    <strong>Alternative:</strong> Instead of deleting, consider marking the template as inactive if you might need it again in the future.
+                </div>
+                
+                {% if workflow_template.is_default %}
+                <div class="alert alert-warning mt-3">
+                    <i class="fas fa-exclamation-triangle me-2"></i>
+                    <strong>Important:</strong> After deleting this template, you should set another template as the default to ensure proper incident workflow handling.
+                </div>
+                {% endif %}
+                
+                <div class="alert alert-secondary mt-3">
+                    <i class="fas fa-info-circle me-2"></i>
+                    <strong>Note:</strong> Existing incidents that use this workflow will continue to function with their current workflow state, but the template will no longer be available for new incidents.
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

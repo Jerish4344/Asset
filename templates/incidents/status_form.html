@@ -1,0 +1,308 @@
+{% extends "base.html" %}
+
+{% block title %}
+    {% if status %}Edit Status: {{ status.name }}{% else %}Create New Incident Status{% endif %}
+{% endblock %}
+
+{% block page_title %}
+    {% if status %}Edit Status: {{ status.name }}{% else %}Create New Incident Status{% endif %}
+{% endblock %}
+
+{% block breadcrumbs %}
+    <li class="breadcrumb-item"><a href="{% url 'asset_dashboard' %}">Home</a></li>
+    <li class="breadcrumb-item"><a href="{% url 'incident_dashboard' %}">Incidents</a></li>
+    <li class="breadcrumb-item"><a href="{% url 'incident_status_list' %}">Statuses</a></li>
+    <li class="breadcrumb-item active">
+        {% if status %}Edit Status{% else %}Create Status{% endif %}
+    </li>
+{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">
+                    {% if status %}
+                        <i class="fas fa-edit me-2"></i>Edit Incident Status
+                    {% else %}
+                        <i class="fas fa-plus-circle me-2"></i>Create New Incident Status
+                    {% endif %}
+                </h5>
+            </div>
+            <div class="card-body">
+                <form method="post" novalidate>
+                    {% csrf_token %}
+                    
+                    {% if form.non_field_errors %}
+                        <div class="alert alert-danger">
+                            {% for error in form.non_field_errors %}
+                                {{ error }}
+                            {% endfor %}
+                        </div>
+                    {% endif %}
+                    
+                    <div class="mb-3">
+                        <label for="{{ form.name.id_for_label }}" class="form-label">Status Name</label>
+                        <input type="text" 
+                               name="{{ form.name.name }}" 
+                               id="{{ form.name.id_for_label }}" 
+                               class="form-control {% if form.name.errors %}is-invalid{% endif %}" 
+                               value="{{ form.name.value|default:'' }}" 
+                               required>
+                        {% if form.name.errors %}
+                            <div class="invalid-feedback">
+                                {% for error in form.name.errors %}
+                                    {{ error }}
+                                {% endfor %}
+                            </div>
+                        {% endif %}
+                        <small class="form-text text-muted">Name of the status (e.g., "Open", "In Progress", "Resolved")</small>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="{{ form.description.id_for_label }}" class="form-label">Description</label>
+                        <textarea name="{{ form.description.name }}" 
+                                  id="{{ form.description.id_for_label }}" 
+                                  class="form-control {% if form.description.errors %}is-invalid{% endif %}" 
+                                  rows="3">{{ form.description.value|default:'' }}</textarea>
+                        {% if form.description.errors %}
+                            <div class="invalid-feedback">
+                                {% for error in form.description.errors %}
+                                    {{ error }}
+                                {% endfor %}
+                            </div>
+                        {% endif %}
+                        <small class="form-text text-muted">A brief description of this status</small>
+                    </div>
+                    
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label for="{{ form.order.id_for_label }}" class="form-label">Display Order</label>
+                            <input type="number" 
+                                   name="{{ form.order.name }}" 
+                                   id="{{ form.order.id_for_label }}" 
+                                   class="form-control {% if form.order.errors %}is-invalid{% endif %}" 
+                                   value="{{ form.order.value|default:'0' }}" 
+                                   min="0">
+                            {% if form.order.errors %}
+                                <div class="invalid-feedback">
+                                    {% for error in form.order.errors %}
+                                        {{ error }}
+                                    {% endfor %}
+                                </div>
+                            {% endif %}
+                            <small class="form-text text-muted">Order in which this status appears in lists (lower numbers first)</small>
+                        </div>
+                        
+                        <div class="col-md-6">
+                            <label for="{{ form.color.id_for_label }}" class="form-label">Status Color</label>
+                            <div class="input-group">
+                                <input type="color" 
+                                       name="{{ form.color.name }}" 
+                                       id="{{ form.color.id_for_label }}" 
+                                       class="form-control form-control-color {% if form.color.errors %}is-invalid{% endif %}" 
+                                       value="{{ form.color.value|default:'#007bff' }}" 
+                                       title="Choose status color">
+                                <input type="text" 
+                                       id="color_hex" 
+                                       class="form-control" 
+                                       value="{{ form.color.value|default:'#007bff' }}" 
+                                       readonly>
+                            </div>
+                            {% if form.color.errors %}
+                                <div class="invalid-feedback">
+                                    {% for error in form.color.errors %}
+                                        {{ error }}
+                                    {% endfor %}
+                                </div>
+                            {% endif %}
+                            <small class="form-text text-muted">Color used to visually represent this status</small>
+                        </div>
+                    </div>
+                    
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <div class="form-check">
+                                <input type="checkbox" 
+                                       name="{{ form.is_default.name }}" 
+                                       id="{{ form.is_default.id_for_label }}" 
+                                       class="form-check-input {% if form.is_default.errors %}is-invalid{% endif %}" 
+                                       {% if form.is_default.value %}checked{% endif %}>
+                                <label for="{{ form.is_default.id_for_label }}" class="form-check-label">Default Status</label>
+                                {% if form.is_default.errors %}
+                                    <div class="invalid-feedback">
+                                        {% for error in form.is_default.errors %}
+                                            {{ error }}
+                                        {% endfor %}
+                                    </div>
+                                {% endif %}
+                                <small class="form-text text-muted d-block">If checked, new incidents will have this status by default</small>
+                            </div>
+                        </div>
+                        
+                        <div class="col-md-6">
+                            <div class="form-check">
+                                <input type="checkbox" 
+                                       name="{{ form.is_closed.name }}" 
+                                       id="{{ form.is_closed.id_for_label }}" 
+                                       class="form-check-input {% if form.is_closed.errors %}is-invalid{% endif %}" 
+                                       {% if form.is_closed.value %}checked{% endif %}>
+                                <label for="{{ form.is_closed.id_for_label }}" class="form-check-label">Closed Status</label>
+                                {% if form.is_closed.errors %}
+                                    <div class="invalid-feedback">
+                                        {% for error in form.is_closed.errors %}
+                                            {{ error }}
+                                        {% endfor %}
+                                    </div>
+                                {% endif %}
+                                <small class="form-text text-muted d-block">If checked, incidents with this status are considered closed/resolved</small>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="alert alert-info">
+                        <i class="fas fa-info-circle me-2"></i>
+                        <strong>Note:</strong>
+                        <ul class="mb-0">
+                            <li>Only one status can be set as the default</li>
+                            <li>Multiple statuses can be marked as "closed" (e.g., "Resolved", "Closed", "Cancelled")</li>
+                            <li>The display order determines the sequence of statuses in dropdown menus and reports</li>
+                        </ul>
+                    </div>
+                    
+                    <div class="d-flex justify-content-between">
+                        <a href="{% url 'incident_status_list' %}" class="btn btn-secondary">
+                            <i class="fas fa-times me-1"></i>Cancel
+                        </a>
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-save me-1"></i>
+                            {% if status %}Update{% else %}Create{% endif %} Status
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">
+                    <i class="fas fa-info-circle me-2"></i>About Incident Statuses
+                </h5>
+            </div>
+            <div class="card-body">
+                <p>Incident statuses represent the current state of an incident in its lifecycle.</p>
+                <p>Common incident statuses include:</p>
+                <ul>
+                    <li><span class="badge" style="background-color: #007bff;">Open</span> - Newly reported incident</li>
+                    <li><span class="badge" style="background-color: #ffc107; color: #212529;">In Progress</span> - Being worked on</li>
+                    <li><span class="badge" style="background-color: #6c757d;">On Hold</span> - Temporarily paused</li>
+                    <li><span class="badge" style="background-color: #28a745;">Resolved</span> - Solution implemented</li>
+                    <li><span class="badge" style="background-color: #343a40;">Closed</span> - No further action needed</li>
+                </ul>
+                
+                <div class="alert alert-warning mt-3">
+                    <i class="fas fa-exclamation-triangle me-2"></i>
+                    <strong>Important:</strong> Setting a status as the default will remove the default flag from any other status.
+                </div>
+                
+                <div class="mt-4">
+                    <h6>Status Preview:</h6>
+                    <div class="p-2 border rounded">
+                        <span class="badge px-3 py-2" id="status_preview" style="background-color: #007bff; font-size: 1rem;">
+                            Status Name
+                        </span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const form = document.querySelector('form');
+        const nameInput = document.getElementById('{{ form.name.id_for_label }}');
+        const colorInput = document.getElementById('{{ form.color.id_for_label }}');
+        const colorHexInput = document.getElementById('color_hex');
+        const statusPreview = document.getElementById('status_preview');
+        
+        // Update color hex value and preview when color changes
+        colorInput.addEventListener('input', function() {
+            colorHexInput.value = this.value;
+            statusPreview.style.backgroundColor = this.value;
+            
+            // Update preview text color based on background brightness
+            const rgb = hexToRgb(this.value);
+            const brightness = (rgb.r * 299 + rgb.g * 587 + rgb.b * 114) / 1000;
+            statusPreview.style.color = brightness > 128 ? '#000000' : '#ffffff';
+        });
+        
+        // Update preview text when name changes
+        nameInput.addEventListener('input', function() {
+            statusPreview.textContent = this.value || 'Status Name';
+        });
+        
+        // Initialize preview
+        if (nameInput.value) {
+            statusPreview.textContent = nameInput.value;
+        }
+        if (colorInput.value) {
+            statusPreview.style.backgroundColor = colorInput.value;
+            const rgb = hexToRgb(colorInput.value);
+            const brightness = (rgb.r * 299 + rgb.g * 587 + rgb.b * 114) / 1000;
+            statusPreview.style.color = brightness > 128 ? '#000000' : '#ffffff';
+        }
+        
+        // Helper function to convert hex to RGB
+        function hexToRgb(hex) {
+            // Remove # if present
+            hex = hex.replace('#', '');
+            
+            // Parse the hex values
+            const r = parseInt(hex.substring(0, 2), 16);
+            const g = parseInt(hex.substring(2, 4), 16);
+            const b = parseInt(hex.substring(4, 6), 16);
+            
+            return { r, g, b };
+        }
+        
+        // Client-side form validation
+        form.addEventListener('submit', function(event) {
+            let isValid = true;
+            
+            // Validate status name (required)
+            if (!nameInput.value.trim()) {
+                nameInput.classList.add('is-invalid');
+                if (!nameInput.nextElementSibling || !nameInput.nextElementSibling.classList.contains('invalid-feedback')) {
+                    const feedback = document.createElement('div');
+                    feedback.classList.add('invalid-feedback');
+                    feedback.textContent = 'Status name is required.';
+                    nameInput.parentNode.insertBefore(feedback, nameInput.nextSibling);
+                }
+                isValid = false;
+            }
+            
+            if (!isValid) {
+                event.preventDefault();
+            }
+        });
+        
+        // Remove validation errors when user types
+        const inputs = form.querySelectorAll('input, textarea');
+        inputs.forEach(input => {
+            input.addEventListener('input', function() {
+                this.classList.remove('is-invalid');
+                const feedback = this.nextElementSibling;
+                if (feedback && feedback.classList.contains('invalid-feedback')) {
+                    feedback.textContent = '';
+                }
+            });
+        });
+    });
+</script>
+{% endblock %}
